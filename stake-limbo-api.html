@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stake Limbo API Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --card: #12121a;
+    --border: #1e1e2e;
+    --accent: #ff6b35;
+    --accent2: #ffcc02;
+    --green: #00e676;
+    --red: #ff1744;
+    --text: #e0e0e0;
+    --muted: #666;
+    --glow: 0 0 20px rgba(255,107,53,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title::before {
+    content: '';
+    display: block;
+    width: 3px;
+    height: 14px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input, select {
+    width: 100%;
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input[type="password"] {
+    letter-spacing: 2px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover {
+    background: #ff8c5a;
+    box-shadow: var(--glow);
+  }
+
+  .btn-primary:disabled {
+    background: #333;
+    color: #555;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    padding: 10px;
+    margin-top: 8px;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Multiplier display */
+  .multiplier-display {
+    text-align: center;
+    padding: 20px 0;
+  }
+
+  .mult-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+
+  .mult-label {
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Result badge */
+  .result-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  .result-win { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid var(--green); }
+  .result-loss { background: rgba(255,23,68,0.15); color: var(--red); border: 1px solid var(--red); }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .stat-box {
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    color: var(--accent2);
+  }
+
+  .stat-lbl {
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  /* Log */
+  .log-container {
+    max-height: 200px;
+    overflow-y: auto;
+    background: #060609;
+    border-radius: 6px;
+    padding: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .log-entry {
+    font-size: 0.68rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a1a24;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .log-mult { font-weight: 700; }
+  .log-win { color: var(--green); }
+  .log-loss { color: var(--red); }
+
+  /* API request viewer */
+  .code-block {
+    background: #060609;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.62rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+    color: #8be9fd;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .json-key { color: #ff79c6; }
+  .json-str { color: #f1fa8c; }
+  .json-num { color: #bd93f9; }
+
+  /* Token section */
+  .token-hint {
+    font-size: 0.6rem;
+    color: var(--muted);
+    line-height: 1.6;
+    padding: 10px;
+    background: #0d0d15;
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+    margin-bottom: 14px;
+  }
+
+  .win-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .win-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+
+  .tab-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Auto mode */
+  .auto-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(255,107,53,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 3px;
+    font-size: 0.55rem;
+    letter-spacing: 1px;
+    padding: 2px 6px;
+    margin-left: 6px;
+  }
+
+  .spinning {
+    animation: spin 0.6s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  .pulse {
+    animation: pulse 0.5s ease-out;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+  }
+
+  #spinner { display: inline-block; }
+</style>
+</head>
+<body>
+
+<h1>LIMBO API EXPLORER</h1>
+<p class="subtitle">STAKE.COM · GRAPHQL · EDUCATIONAL TOOL</p>
+
+<!-- Token Setup -->
+<div class="card">
+  <div class="card-title">Step 1 — Your Access Token</div>
+  <div class="token-hint">
+    🔑 How to get your token:<br>
+    1. Login to Stake.com<br>
+    2. Open DevTools → Application → Cookies<br>
+    3. Copy the <strong>session</strong> cookie value<br>
+    — OR —<br>
+    Open DevTools → Network → any graphql request → Headers → find <strong>x-access-token</strong>
+  </div>
+  <label>x-access-token</label>
+  <input type="password" id="token" placeholder="Paste your session token here..." />
+  <button class="btn-secondary" onclick="testToken()">⚡ TEST CONNECTION</button>
+  <div id="token-result" style="margin-top:8px; font-size:0.7rem;"></div>
+</div>
+
+<!-- Tabs -->
+<div class="tab-row">
+  <button class="tab active" onclick="switchTab('manual')">Manual Bet</button>
+  <button class="tab" onclick="switchTab('auto')">Auto Mode</button>
+  <button class="tab" onclick="switchTab('api')">API View</button>
+</div>
+
+<!-- MANUAL TAB -->
+<div class="tab-content active" id="tab-manual">
+  <div class="card">
+    <div class="card-title">Step 2 — Configure Bet</div>
+    <div class="row">
+      <div>
+        <label>Bet Amount</label>
+        <input type="number" id="amount" value="0.00000001" step="0.00000001" min="0.00000001" />
+      </div>
+      <div>
+        <label>Currency</label>
+        <select id="currency">
+          <option value="btc">BTC</option>
+          <option value="eth">ETH</option>
+          <option value="ltc">LTC</option>
+          <option value="doge">DOGE</option>
+          <option value="trx">TRX</option>
+        </select>
+      </div>
+    </div>
+    <label>Target Multiplier <span style="color:var(--accent2)" id="win-chance-label">(win chance: 98.02%)</span></label>
+    <input type="range" id="mult-range" min="101" max="100000" value="102" step="1"
+      oninput="updateMultDisplay(this.value)" style="padding:0; background:transparent; border:none; margin-bottom:6px;" />
+    <input type="number" id="multiplier" value="1.02" step="0.01" min="1.01"
+      oninput="syncRange(this.value)" />
+    <button class="btn-primary" id="bet-btn" onclick="placeBet()">
+      <span id="spinner">▶</span> PLACE BET
+    </button>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="result-card">
+    <div class="card-title">Last Result</div>
+    <div class="multiplier-display">
+      <div class="mult-value" id="result-mult" style="color: var(--muted)">—</div>
+      <div class="mult-label">RESULT MULTIPLIER</div>
+      <div id="result-badge"></div>
+    </div>
+    <div style="display:flex; justify-content:space-between; font-size:0.65rem; color:var(--muted); margin-top:10px;">
+      <span>Target: <span id="r-target" style="color:var(--text)">—</span></span>
+      <span>Payout: <span id="r-payout" style="color:var(--accent2)">—</span></span>
+      <span>Bet ID: <span id="r-id" style="color:var(--text)">—</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- AUTO TAB -->
+<div class="tab-content" id="tab-auto">
+  <div class="card">
+    <div class="card-title">Auto Bet Settings <span class="tag">LEARNING</span></div>
+    <div class="auto-grid">
+      <div>
+        <label>Number of Bets</label>
+        <input type="number" id="auto-count" value="5" min="1" max="50" />
+      </div>
+      <div>
+        <label>Delay (ms)</label>
+        <input type="number" id="auto-delay" value="800" min="300" max="5000" />
+      </div>
+      <div>
+        <label>Bet Amount</label>
+        <input type="number" id="auto-amount" value="0.00000001" step="0.00000001" />
+      </div>
+      <div>
+        <label>Target Multiplier</label>
+        <input type="number" id="auto-mult" value="2.00" step="0.01" />
+      </div>
+    </div>
+    <label>On Loss</label>
+    <select id="on-loss">
+      <option value="reset">Reset to base bet</option>
+      <option value="double">Double bet (Martingale)</option>
+    </select>
+    <div id="auto-progress" style="display:none; margin-bottom:10px;">
+      <div style="font-size:0.65rem; color:var(--muted); margin-bottom:4px;">
+        Progress: <span id="auto-progress-text">0/0</span>
+      </div>
+      <div class="win-bar"><div class="win-fill" id="auto-bar" style="width:0%"></div></div>
+    </div>
+    <button class="btn-primary" id="auto-btn" onclick="startAuto()">▶ START AUTO</button>
+    <button class="btn-secondary" id="stop-btn" onclick="stopAuto()" style="display:none;">⏹ STOP</button>
+  </div>
+</div>
+
+<!-- API VIEW TAB -->
+<div class="tab-content" id="tab-api">
+  <div class="card">
+    <div class="card-title">GraphQL Request Body</div>
+    <div class="code-block" id="api-request-view">// Place a bet to see the request here</div>
+  </div>
+  <div class="card">
+    <div class="card-title">API Response</div>
+    <div class="code-block" id="api-response-view">// Response will appear here</div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="card">
+  <div class="card-title">Session Stats</div>
+  <div class="stats-row">
+    <div class="stat-box">
+      <div class="stat-val" id="stat-bets">0</div>
+      <div class="stat-lbl">Total Bets</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-wins" style="color:var(--green)">0</div>
+      <div class="stat-lbl">Wins</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-losses" style="color:var(--red)">0</div>
+      <div class="stat-lbl">Losses</div>
+    </div>
+  </div>
+  <div class="win-bar">
+    <div class="win-fill" id="win-rate-bar" style="width:0%"></div>
+  </div>
+  <div style="text-align:right; font-size:0.6rem; color:var(--muted); margin-top:4px;">
+    Win Rate: <span id="win-rate-pct">0%</span>
+  </div>
+</div>
+
+<!-- Bet Log -->
+<div class="card">
+  <div class="card-title">Bet Log</div>
+  <div class="log-container" id="log-container">
+    <div style="text-align:center; color:var(--muted); font-size:0.65rem; padding:20px 0;">
+      No bets yet. Place a bet to see results here.
+    </div>
+  </div>
+  <button class="btn-secondary" onclick="clearLog()">CLEAR LOG</button>
+</div>
+
+<script>
+  let stats = { bets: 0, wins: 0, losses: 0 };
+  let autoRunning = false;
+  let autoStop = false;
+  let lastRequest = null;
+  let lastResponse = null;
+
+  function updateMultDisplay(val) {
+    const mult = (val / 100).toFixed(2);
+    document.getElementById('multiplier').value = mult;
+    const chance = (99 / mult).toFixed(2);
+    document.getElementById('win-chance-label').textContent = `(win chance: ${Math.min(chance,99)}%)`;
+  }
+
+  function syncRange(val) {
+    const v = Math.round(parseFloat(val) * 100);
+    document.getElementById('mult-range').value = Math.min(v, 100000);
+    const chance = (99 / val).toFixed(2);
+    document.getElementById('win-chance-label').textContent = `(win chance: ${Math.min(chance,99)}%)`;
+  }
+
+  function getToken() {
+    return document.getElementById('token').value.trim();
+  }
+
+  async function callAPI(amount, currency, multiplier) {
+    const token = getToken();
+    if (!token) throw new Error('No access token provided');
+
+    const body = {
+      operationName: "LimboRoll",
+      variables: {
+        amount: parseFloat(amount),
+        currency: currency.toLowerCase(),
+        multiplierTarget: parseFloat(multiplier)
+      },
+      query: `mutation LimboRoll($amount: Float!, $currency: CurrencyEnum!, $multiplierTarget: Float!) {
+  limboRoll(amount: $amount, currency: $currency, multiplierTarget: $multiplierTarget) {
+    id
+    active
+    payoutMultiplier
+    amountMultiplier
+    amount
+    payout
+    updatedAt
+    currency
+    result {
+      ... on CasinoLimboResult {
+        result
+        __typename
+      }
+      __typename
+    }
+    __typename
+  }
+}`
+    };
+
+    lastRequest = body;
+    updateAPIView();
+
+    const PROXY = "https://api.allorigins.win/raw?url=";
+    const API = encodeURIComponent("https://api.stake.com/graphql");
+    const res = await fetch(PROXY + API, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-access-token": token
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+    lastResponse = data;
+    updateAPIView();
+    return data;
+  }
+
+  async function testToken() {
+    const token = getToken();
+    if (!token) {
+      document.getElementById('token-result').innerHTML = '<span style="color:var(--red)">⚠ Please enter a token first</span>';
+      return;
+    }
+
+    document.getElementById('token-result').innerHTML = '<span style="color:var(--muted)">Testing...</span>';
+
+    try {
+      const body = {
+        operationName: "UserBalances",
+        variables: {},
+        query: `query UserBalances { user { id name balances { available { amount currency } } } }`
+      };
+
+      const PROXY = "https://api.allorigins.win/raw?url=";
+      const API = encodeURIComponent("https://api.stake.com/graphql");
+      const res = await fetch(PROXY + API, {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-access-token": token },
+        body: JSON.stringify(body)
+      });
+
+      const data = await res.json();
+
+      if (data.data && data.data.user) {
+        const user = data.data.user;
+        document.getElementById('token-result').innerHTML =
+          `<span style="color:var(--green)">✓ Connected as: ${user.name || user.id}</span>`;
+      } else {
+        document.getElementById('token-result').innerHTML =
+          `<span style="color:var(--red)">✗ Invalid token or expired session</span>`;
+      }
+    } catch (e) {
+      document.getElementById('token-result').innerHTML =
+        `<span style="color:var(--red)">✗ Error: ${e.message}</span>`;
+    }
+  }
+
+  async function placeBet() {
+    const token = getToken();
+    if (!token) {
+      alert('Please enter your access token first!');
+      return;
+    }
+
+    const amount = document.getElementById('amount').value;
+    const currency = document.getElementById('currency').value;
+    const multiplier = document.getElementById('multiplier').value;
+
+    const btn = document.getElementById('bet-btn');
+    const spinner = document.getElementById('spinner');
+    btn.disabled = true;
+    spinner.textContent = '⟳';
+    spinner.classList.add('spinning');
+
+    try {
+      const data = await callAPI(amount, currency, multiplier);
+
+      if (data.errors) {
+        throw new Error(data.errors[0].message);
+      }
+
+      const roll = data.data.limboRoll;
+      const result = roll.result.result;
+      const won = result >= parseFloat(multiplier);
+
+      updateResult(result, multiplier, roll.payout, roll.id, won);
+      addLog(result, multiplier, won, roll.amount, roll.currency);
+      updateStats(won);
+
+    } catch (e) {
+      document.getElementById('result-mult').textContent = 'ERR';
+      document.getElementById('result-mult').style.color = 'var(--red)';
+      document.getElementById('result-badge').innerHTML =
+        `<span class="result-badge result-loss">${e.message}</span>`;
+    }
+
+    btn.disabled = false;
+    spinner.textContent = '▶';
+    spinner.classList.remove('spinning');
+  }
+
+  function updateResult(result, target, payout, id, won) {
+    const el = document.getElementById('result-mult');
+    el.textContent = result.toFixed(2) + 'x';
+    el.style.color = won ? 'var(--green)' : 'var(--red)';
+    el.classList.add('pulse');
+    setTimeout(() => el.classList.remove('pulse'), 500);
+
+    document.getElementById('r-target').textContent = parseFloat(target).toFixed(2) + 'x';
+    document.getElementById('r-payout').textContent = payout ? payout.toFixed(8) : '0.00000000';
+    document.getElementById('r-id').textContent = id ? id.substring(0, 10) + '...' : '—';
+
+    document.getElementById('result-badge').innerHTML =
+      won ? '<span class="result-badge result-win">✓ WIN</span>'
+          : '<span class="result-badge result-loss">✗ LOSS</span>';
+  }
+
+  function addLog(result, target, won, amount, currency) {
+    const container = document.getElementById('log-container');
+    if (container.querySelector('.no-bets')) container.innerHTML = '';
+
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `
+      <span class="log-mult ${won ? 'log-win' : 'log-loss'}">${result.toFixed(2)}x</span>
+      <span style="color:var(--muted); font-size:0.6rem;">target: ${parseFloat(target).toFixed(2)}x</span>
+      <span style="font-size:0.6rem;">${amount} ${currency.toUpperCase()}</span>
+      <span class="${won ? 'log-win' : 'log-loss'}" style="font-size:0.6rem;">${won ? 'WIN' : 'LOSS'}</span>
+    `;
+    container.insertBefore(entry, container.firstChild);
+
+    if (container.children.length > 50) {
+      container.removeChild(container.lastChild);
+    }
+  }
+
+  function updateStats(won) {
+    stats.bets++;
+    if (won) stats.wins++; else stats.losses++;
+
+    document.getElementById('stat-bets').textContent = stats.bets;
+    document.getElementById('stat-wins').textContent = stats.wins;
+    document.getElementById('stat-losses').textContent = stats.losses;
+
+    const rate = stats.bets > 0 ? (stats.wins / stats.bets * 100) : 0;
+    document.getElementById('win-rate-bar').style.width = rate + '%';
+    document.getElementById('win-rate-pct').textContent = rate.toFixed(1) + '%';
+  }
+
+  function updateAPIView() {
+    if (lastRequest) {
+      document.getElementById('api-request-view').textContent =
+        JSON.stringify(lastRequest, null, 2);
+    }
+    if (lastResponse) {
+      document.getElementById('api-response-view').textContent =
+        JSON.stringify(lastResponse, null, 2);
+    }
+  }
+
+  async function startAuto() {
+    if (!getToken()) { alert('Enter token first!'); return; }
+
+    const count = parseInt(document.getElementById('auto-count').value);
+    const delay = parseInt(document.getElementById('auto-delay').value);
+    const amount = document.getElementById('auto-amount').value;
+    const mult = document.getElementById('auto-mult').value;
+    const onLoss = document.getElementById('on-loss').value;
+
+    autoStop = false;
+    document.getElementById('auto-btn').style.display = 'none';
+    document.getElementById('stop-btn').style.display = 'block';
+    document.getElementById('auto-progress').style.display = 'block';
+
+    let currentAmount = parseFloat(amount);
+
+    for (let i = 0; i < count; i++) {
+      if (autoStop) break;
+
+      document.getElementById('auto-progress-text').textContent = `${i+1}/${count}`;
+      document.getElementById('auto-bar').style.width = ((i+1)/count*100) + '%';
+
+      try {
+        const data = await callAPI(currentAmount, 'btc', mult);
+        if (data.errors) throw new Error(data.errors[0].message);
+
+        const roll = data.data.limboRoll;
+        const result = roll.result.result;
+        const won = result >= parseFloat(mult);
+
+        updateResult(result, mult, roll.payout, roll.id, won);
+        addLog(result, mult, won, currentAmount, 'btc');
+        updateStats(won);
+
+        if (onLoss === 'double' && !won) {
+          currentAmount = currentAmount * 2;
+        } else if (won) {
+          currentAmount = parseFloat(amount);
+        }
+
+      } catch(e) {
+        console.error(e);
+        break;
+      }
+
+      await new Promise(r => setTimeout(r, delay));
+    }
+
+    document.getElementById('auto-btn').style.display = 'block';
+    document.getElementById('stop-btn').style.display = 'none';
+  }
+
+  function stopAuto() {
+    autoStop = true;
+    document.getElementById('auto-btn').style.display = 'block';
+    document.getElementById('stop-btn').style.display = 'none';
+  }
+
+  function clearLog() {
+    document.getElementById('log-container').innerHTML =
+      '<div class="no-bets" style="text-align:center; color:var(--muted); font-size:0.65rem; padding:20px 0;">No bets yet. Place a bet to see results here.</div>';
+    stats = { bets: 0, wins: 0, losses: 0 };
+    document.getElementById('stat-bets').textContent = 0;
+    document.getElementById('stat-wins').textContent = 0;
+    document.getElementById('stat-losses').textContent = 0;
+    document.getElementById('win-rate-bar').style.width = '0%';
+    document.getElementById('win-rate-pct').textContent = '0%';
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      const names = ['manual','auto','api'];
+      t.classList.toggle('active', names[i] === name);
+    });
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+</script>
+</body>
+</html>
