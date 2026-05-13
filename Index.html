@@ -1426,9 +1426,14 @@ console.log('✓ Firebase initialized');
 </script>
 
 <script>
-// ── ALL PRODUCT DATA ───────────────────────────────────
+// -- Built-in item counts - stale guard reference (always available) --
+const BUILT_IN_COUNTS = {RJR:385, ITG:93, ALTRIA:460, CANDY:290, ARA:1444};
+
+
+// -- ALL PRODUCT DATA ----------------------------------─
 let data = [];
-let nextId = 224;
+let nextId = 386;
+let activeBpCat = 'ALL'; // used by bulk price modal
 let currentCat = 'ALL';
 let currentGroup = 'ALL';
 let currentSort = 'item';
@@ -1437,7 +1442,7 @@ let currentPage = 1;
 const PER_PAGE = 25;
 let editId = null;
 
-// ── ICONS PER BRAND ────────────────────────────────────
+// -- ICONS PER BRAND ------------------------------------
 function getIcon(item, cat) {
   const i = item.toUpperCase();
   // CANDY icons
@@ -1495,7 +1500,7 @@ function netPrice(row) {
   return Math.max(0, row.price - row.rebate - offAmt);
 }
 
-// ── FILTER + SORT ──────────────────────────────────────
+// -- FILTER + SORT --------------------------------------
 function getFiltered() {
   const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
   let rows = data.filter(r => {
@@ -1571,7 +1576,7 @@ function buildGroupFilters() {
     }).join('');
 }
 
-// ── RENDER ─────────────────────────────────────────────
+// -- RENDER --------------------------------------------─
 // Track selected row IDs
 let selectedIds = new Set();
 
@@ -1607,10 +1612,10 @@ function openBulkEdit() {
   const groups = [...new Set(data.map(r => r.item))].sort();
   const cats = getCats();
   document.getElementById('be-group').innerHTML =
-    '<option value="">— Keep existing —</option>' +
+    '<option value="">- Keep existing -</option>' +
     groups.map(g => `<option value="${g}">${g}</option>`).join('');
   document.getElementById('be-cat').innerHTML =
-    '<option value="">— Keep existing —</option>' +
+    '<option value="">- Keep existing -</option>' +
     cats.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
   document.getElementById('be-count').textContent = selectedIds.size + ' items selected';
   document.getElementById('bulkEditModal').classList.add('open');
@@ -1658,7 +1663,7 @@ function render() {
     const cnt = document.getElementById(c.cntId); if(cnt) cnt.textContent = count;
   });
   const _rc = document.getElementById('result-count');
-  if(_rc) _rc.textContent = 'Showing '+(start+1)+'–'+Math.min(start+PER_PAGE,total)+' of '+total+' items';
+  if(_rc) _rc.textContent = 'Showing '+(start+1)+'-'+Math.min(start+PER_PAGE,total)+' of '+total+' items';
 
   const _tb = document.getElementById('tableBody');
   if(_tb) _tb.innerHTML = page.map(r => {
@@ -1673,8 +1678,8 @@ function render() {
       '<td>'+catBadge(r.cat)+'</td>' +
       '<td class="upc-val">'+r.upc+'</td>' +
       '<td class="price-val">$'+r.price.toFixed(2)+'</td>' +
-      '<td class="rebate-val">'+(r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '—')+'</td>' +
-      '<td class="offs-val">'+(r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '—')+'</td>' +
+      '<td class="rebate-val">'+(r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '-')+'</td>' +
+      '<td class="offs-val">'+(r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '-')+'</td>' +
       '<td class="net-price">$'+net.toFixed(2)+'</td>' +
       '<td><div class="row-actions" onclick="event.stopPropagation()">' +
       '<button class="row-btn" onclick="openEdit('+r.id+')">Edit</button>' +
@@ -1703,7 +1708,7 @@ function nextPage() {
 }
 function goPage(p) { currentPage = p; render(); }
 
-// ── MODAL ──────────────────────────────────────────────
+// -- MODAL ----------------------------------------------
 function populateModalGroups(selectedGroup) {
   const cats = getCats();
   const catVal = document.getElementById('f-cat')?.value || '';
@@ -1716,7 +1721,7 @@ function populateModalGroups(selectedGroup) {
     `<option value="${g}" ${g === selectedGroup ? 'selected' : ''}>${g}</option>`
   ).join('');
   // If no groups yet (new company/empty data), allow fallback
-  if (!groups.length) sel.innerHTML = '<option value="">— No groups yet —</option>';
+  if (!groups.length) sel.innerHTML = '<option value="">- No groups yet -</option>';
 }
 
 function onModalGroupChange() {
@@ -1742,10 +1747,11 @@ function openEdit(id) {
   const r = data.find(x=>x.id===id);
   document.getElementById('modal-head').textContent = 'EDIT ITEM';
   document.getElementById('modal-sub').textContent = 'Update product pricing details';
+  // Set cat FIRST so populateModalGroups filters correctly
+  document.getElementById('f-cat').value = r.cat;
   populateModalGroups(r.item);
   document.getElementById('f-desc').value = r.desc;
   document.getElementById('f-upc').value = r.upc;
-  document.getElementById('f-cat').value = r.cat;
   document.getElementById('f-price').value = r.price;
   document.getElementById('f-rebate').value = r.rebate;
   document.getElementById('f-offs').value = r.offs;
@@ -1753,7 +1759,7 @@ function openEdit(id) {
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
-// ── AUTO SYNC CARTON WHEN SINGLE IS EDITED ──────────────────
+// -- AUTO SYNC CARTON WHEN SINGLE IS EDITED ------------------
 // Rules:
 //   CIGG single  → Carton in same group: price/rebate/offs × 10
 //   OTBC single  → Carton in same group: price/rebate/offs × 5
@@ -1765,7 +1771,7 @@ function autoSyncCarton(savedRow) {
 
   const mult = isCigg ? 10 : 5;
 
-  // Find carton counterparts — same group (item), cat contains 'Carton'
+  // Find carton counterparts - same group (item), cat contains 'Carton'
   const group = (savedRow.item || '').trim().toUpperCase();
   let synced = 0;
 
@@ -1788,7 +1794,7 @@ function autoSyncCarton(savedRow) {
     toast(`✓ Auto-updated ${synced} carton item${synced > 1 ? 's' : ''} (×${mult})`);
   }
 }
-// ── END AUTO SYNC CARTON ─────────────────────────────────────
+// -- END AUTO SYNC CARTON ------------------------------------─
 
 
 function updateCascadeHint() {
@@ -1836,8 +1842,26 @@ function saveItem() {
     data[idx] = { ...data[idx], item, desc, upc, cat, price, rebate, offs };
     if (anyChanged) companies[currentCompany]._changed.add(data[idx].id);
 
-    // ── AUTO-CASCADE to partner carton/5-can when editing a SINGLE ──
+    // -- AUTO-CASCADE to partner carton/5-can when editing a SINGLE --
     // Only cascade if price, rebate or offs changed AND this is a single (not carton/5-can)
+    // -- REVERSE CASCADE: editing a ROLL/5-can → update single (÷5) --
+    if (anyChanged && is5Can(item)) {
+      const singlePartner = findSinglePartner(item);
+      if (singlePartner) {
+        data = data.map(r => {
+          if (r.item !== singlePartner) return r;
+          // Only update non-roll, non-carton items in that group
+          if (is5Can(r.item) || isCarton(r.item)) return r;
+          const newSinglePrice  = priceChanged  ? +(price  / 5).toFixed(2) : r.price;
+          const newSingleRebate = rebateChanged ? +(rebate / 5).toFixed(2) : r.rebate;
+          const newSingleOffs   = offsChanged   ? (parseOffs(offs) > 0 ? String(+(parseOffs(offs) / 5).toFixed(2)) : '') : r.offs;
+          companies[currentCompany]._changed.add(r.id);
+          return { ...r, price: newSinglePrice, rebate: newSingleRebate, offs: newSingleOffs };
+        });
+        toast('↺ Auto-updated single partner (÷5)');
+      }
+    }
+
     if (anyChanged && !isCarton(item) && !is5Can(item)) {
       // Determine multipliers based on category
       // Cigarettes: carton = ×10, 5-can = ×5
@@ -1906,7 +1930,7 @@ function del(id) {
   toast('Item removed.');
 }
 
-// ── EXPORT ─────────────────────────────────────────────
+// -- EXPORT --------------------------------------------─
 function openExportModal() {
   const cats = getCats();
   const groups = [...new Set(data.map(r => r.item))].sort();
@@ -2021,10 +2045,10 @@ document.getElementById('modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-// ── BULK PRICE CHANGE ──────────────────────────────────
+// -- BULK PRICE CHANGE ----------------------------------
 
-// ── 5-CAN PARTNER LOGIC ────────────────────────────────
-// ── MULTI-PACK LOGIC ──────────────────────────────────
+// -- 5-CAN PARTNER LOGIC --------------------------------
+// -- MULTI-PACK LOGIC ----------------------------------
 // Other Tobacco: single × 5  →  5-can/roll
 // Cigarettes:    single × 10 →  Carton
 // Detect pack type from item name or category
@@ -2079,12 +2103,15 @@ function findSingleFromCarton(cartonGroup) {
 function find5CanPartner(singleGroup) {
   const base = singleGroup.toUpperCase().replace(/\s+(5-?CAN|5-?ROLL|ROLL|5\s?CN).*$/i,'').trim();
   const allGroups = [...new Set(data.map(r => r.item))];
-  return allGroups.find(g => {
+  // Look for ROLL/5-CAN group whose base name matches
+  const byName = allGroups.find(g => {
     if (g === singleGroup || !is5Can(g)) return false;
-    const gUp = g.toUpperCase();
-    const gBase = gUp.replace(/\s+(5-?CAN|5-?ROLL|ROLL|5\s?CN).*$/i,'').trim();
+    const gBase = g.toUpperCase().replace(/\s+(5-?CAN|5-?ROLL|ROLL|5\s?CN).*$/i,'').trim();
     return gBase === base;
-  }) || null;
+  });
+  if (byName) return byName;
+  // Fallback: look for any group that starts with base + ' ROLL'
+  return allGroups.find(g => g.toUpperCase() === (base + ' ROLL')) || null;
 }
 // Given a 5-can group, find its single OtherTobacco partner
 function findSinglePartner(fiveCanGroup) {
@@ -2181,7 +2208,7 @@ function openBulkPrice() {
 
   // Build category pills
   const pillsEl = document.getElementById('bp-cat-pills');
-  let activeBpCat = 'ALL';
+  activeBpCat = 'ALL';
   pillsEl.innerHTML = '';
 
   function buildPills() {
@@ -2211,11 +2238,11 @@ function openBulkPrice() {
       : data.filter(r => r.cat === activeBpCat);
     const groups = [...new Set(filtered.map(r => r.item))].sort();
     const sel = document.getElementById('bp-group');
-    sel.innerHTML = '<option value="">— Choose a group —</option>' +
-      groups.map(g => `<option value="${g}">${g}${getPackLabel(g) ? ' '+getPackLabel(g) : ''}</option>`).join('');
+    sel.innerHTML = '<option value="">- Choose a group -</option>' +
+      groups.map(g => `<option value="${g}">${g}${activeBpCat === 'ALL' && getPackLabel(g) ? ' '+getPackLabel(g) : ''}</option>`).join('');
     // Reset preview
-    document.getElementById('bp-current').textContent = '—';
-    document.getElementById('bp-rebate-current').textContent = '—';
+    document.getElementById('bp-current').textContent = '-';
+    document.getElementById('bp-rebate-current').textContent = '-';
     document.getElementById('bp-new').value = '';
     document.getElementById('bp-rebate-new').value = '';
     document.getElementById('bp-diff-box').style.display = 'none';
@@ -2243,15 +2270,15 @@ function onGroupChange() {
   document.getElementById('bp-apply-btn').disabled = true;
 
   if (!group) {
-    document.getElementById('bp-current').textContent = '—';
-    document.getElementById('bp-rebate-current').textContent = '—';
+    document.getElementById('bp-current').textContent = '-';
+    document.getElementById('bp-rebate-current').textContent = '-';
     document.getElementById('bp-preview-label').textContent = 'Select a group to preview changes';
     document.getElementById('bp-count').textContent = '';
     document.getElementById('bp-tbody').innerHTML = '';
     return;
   }
 
-  const items = data.filter(r => r.item === group);
+  const items = data.filter(r => r.item === group && (activeBpCat === 'ALL' || r.cat === activeBpCat));
   const selfMult = getMultiplier(group);
   // For singles: find both 5-can partner (Other Tobacco) and Carton partner (CIGG)
   const partner5    = (!is5Can(group) && !isCarton(group)) ? find5CanPartner(group) : null;
@@ -2272,7 +2299,7 @@ function onGroupChange() {
 
   document.getElementById('bp-current').textContent = '$' + basePrice.toFixed(2);
   document.getElementById('bp-rebate-current').textContent = '$' + baseRebate.toFixed(2);
-  document.getElementById('bp-preview-label').textContent = 'Preview — ' + group +
+  document.getElementById('bp-preview-label').textContent = 'Preview - ' + group +
     (partner5   ? ' + ' + partner5   + ' (×5 auto)'  : '') +
     (partnerCtn ? ' + ' + partnerCtn + ' (×10 auto)' : '') +
     (partnerSgl ? ' + ' + partnerSgl + ' (single)'        : '');
@@ -2289,7 +2316,7 @@ function onNewPriceInput() {
   const newRebateRaw = document.getElementById('bp-rebate-new')?.value;
   const newRebate = newRebateRaw !== '' ? parseFloat(newRebateRaw) : null;
 
-  const items = data.filter(r => r.item === group);
+  const items = data.filter(r => r.item === group && (activeBpCat === 'ALL' || r.cat === activeBpCat));
   const selfMult = getMultiplier(group);
   const oldBase  = selfMult > 1
     ? Math.max(...items.map(r => r.price)) / selfMult
@@ -2338,7 +2365,7 @@ function renderBulkPreview(items, oldBase, newBase, oldRebate, newRebate, partne
     let newPrice = r.price;
     if (newBase !== null) newPrice = Math.max(0, +((newBase * multiplier) - offAmt).toFixed(2));
     const priceDiff = newBase !== null ? newPrice - r.price : 0;
-    const priceChangeHtml = newBase === null ? '—'
+    const priceChangeHtml = newBase === null ? '-'
       : priceDiff === 0 ? '<span class="bp-chg-none">no change</span>'
       : priceDiff > 0
         ? '<span class="bp-chg-up">▲ +$' + priceDiff.toFixed(2) + '</span>'
@@ -2352,9 +2379,9 @@ function renderBulkPreview(items, oldBase, newBase, oldRebate, newRebate, partne
 
     const labelHtml = label ? '<span style="font-size:0.55rem;color:var(--purple);margin-left:4px">' + label + '</span>' : '';
     return '<tr><td title="' + r.desc + '">' + (r.desc.length > 44 ? r.desc.slice(0,44)+'…' : r.desc) + labelHtml + '</td>' +
-      '<td>' + (r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '—') + '</td>' +
+      '<td>' + (r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '-') + '</td>' +
       '<td>$' + r.price.toFixed(2) + '</td>' +
-      '<td class="bp-new-price">' + (newBase !== null ? '$'+newPrice.toFixed(2) : '—') + '</td>' +
+      '<td class="bp-new-price">' + (newBase !== null ? '$'+newPrice.toFixed(2) : '-') + '</td>' +
       '<td>' + rebateHtml + '</td>' +
       '<td>' + priceChangeHtml + '</td></tr>';
   };
@@ -2362,17 +2389,17 @@ function renderBulkPreview(items, oldBase, newBase, oldRebate, newRebate, partne
   const rows = sorted.map(r => renderRow(r, selfMult, getPackLabel(r.item)));
 
   if (partner5Items.length) {
-    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--purple);border-top:1px solid var(--border);background:rgba(155,109,255,0.04)">◆ 5-CAN / 5-ROLL — AUTO ×5</td></tr>');
+    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--purple);border-top:1px solid var(--border);background:rgba(155,109,255,0.04)">◆ 5-CAN / 5-ROLL - AUTO ×5</td></tr>');
     [...partner5Items].sort((a,b)=>parseOffs(a.offs)-parseOffs(b.offs)).forEach(r=>rows.push(renderRow(r,5,'×5')));
   }
 
   if (partnerCtnItems.length) {
-    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--cigg);border-top:1px solid var(--border);background:rgba(232,160,32,0.04)">◆ CARTON — AUTO ×10</td></tr>');
+    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--cigg);border-top:1px solid var(--border);background:rgba(232,160,32,0.04)">◆ CARTON - AUTO ×10</td></tr>');
     [...partnerCtnItems].sort((a,b)=>parseOffs(a.offs)-parseOffs(b.offs)).forEach(r=>rows.push(renderRow(r,10,'×10')));
   }
 
   if (partnerSglItems.length) {
-    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--ink3);border-top:1px solid var(--border)">◇ SINGLE — BASE PRICE</td></tr>');
+    rows.push('<tr><td colspan="6" style="padding:6px 14px;font-size:0.58rem;letter-spacing:0.1em;color:var(--ink3);border-top:1px solid var(--border)">◇ SINGLE - BASE PRICE</td></tr>');
     [...partnerSglItems].sort((a,b)=>parseOffs(a.offs)-parseOffs(b.offs)).forEach(r=>rows.push(renderRow(r,1,'')));
   }
 
@@ -2388,7 +2415,7 @@ function applyBulkPrice() {
   const newBase = newBaseRaw !== '' ? parseFloat(newBaseRaw) : null;
   const newRebate = newRebateRaw !== '' ? parseFloat(newRebateRaw) : null;
 
-  const items = data.filter(r => r.item === group);
+  const items = data.filter(r => r.item === group && (activeBpCat === 'ALL' || r.cat === activeBpCat));
   const oldBase = Math.max(...items.map(r => r.price));
   const oldRebate = items[0]?.rebate ?? 0;
 
@@ -2431,10 +2458,10 @@ function applyBulkPrice() {
   closeBulkModal();
   saveToStorage();
   render();
-  toast(`✓ ${changed} variants updated — ${parts.join(' · ')}`);
+  toast(`✓ ${changed} variants updated - ${parts.join(' · ')}`);
 }
 
-// ── UPLOAD / IMPORT ────────────────────────────────────
+// -- UPLOAD / IMPORT ------------------------------------
 let uploadPreview = { newItems: [], dupItems: [], skipItems: [] };
 let currentUpTab = 'new';
 
@@ -2465,7 +2492,7 @@ function parseAndPreview(csvText, sourceType) {
   const lines = csvText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length < 2) { toast('File appears empty or unreadable.'); return; }
 
-  // Detect header row — find line with upc_code or UPC
+  // Detect header row - find line with upc_code or UPC
   let headerIdx = 0;
   for (let i = 0; i < Math.min(5, lines.length); i++) {
     if (/upc|item_price|description/i.test(lines[i])) { headerIdx = i; break; }
@@ -2473,7 +2500,7 @@ function parseAndPreview(csvText, sourceType) {
 
   const headers = parseCSVLine(lines[headerIdx]).map(h => h.toLowerCase().trim().replace(/['"]/g,''));
 
-  // Column mapping — flexible
+  // Column mapping - flexible
   const colMap = {
     upc: findCol(headers, ['upc_code','upc','barcode']),
     desc: findCol(headers, ['description','desc','name','product']),
@@ -2509,7 +2536,7 @@ function parseAndPreview(csvText, sourceType) {
 
     const cleanUPC = upc.replace(/^'+/,'');
     if (existingUPCs.has(cleanUPC)) {
-      // It's a duplicate — check if price changed
+      // It's a duplicate - check if price changed
       const existing = data.find(r => r.upc.replace(/^'+/,'') === cleanUPC);
       const priceChanged = existing && (existing.price !== price || existing.rebate !== rebate);
       dupItems.push({ upc: cleanUPC, desc, price, rebate, cat, offs, item, priceChanged, existingPrice: existing?.price });
@@ -2591,10 +2618,10 @@ function openUpBulkEdit() {
   const groups = [...new Set(data.map(r => r.item))].sort();
   const cats = getCats();
   document.getElementById('be-group').innerHTML =
-    '<option value="">— Keep existing —</option>' +
+    '<option value="">- Keep existing -</option>' +
     groups.map(g => `<option value="${g}">${g}</option>`).join('');
   document.getElementById('be-cat').innerHTML =
-    '<option value="">— Keep existing —</option>' +
+    '<option value="">- Keep existing -</option>' +
     cats.map(c => `<option value="${c.key}">${c.label}</option>`).join('');
   document.getElementById('be-count').textContent = upSelectedIdxs.size + ' new items selected';
   document.getElementById('bulkEditModal').classList.add('open');
@@ -2689,16 +2716,16 @@ function renderUpRow(r, type, idx = 0) {
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:28px;height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:0.85rem;background:${ic.bg};flex-shrink:0">${ic.icon}</div>
         <div>
-          <div class="up-item-name">${r.item || '—'}</div>
-          <div class="up-item-desc">${r.desc || '—'}</div>
+          <div class="up-item-name">${r.item || '-'}</div>
+          <div class="up-item-desc">${r.desc || '-'}</div>
         </div>
       </div>
     </td>
     <td>${catBadge(r.cat || 'CIGG')}</td>
-    <td class="upc-val">${r.upc || '—'}</td>
-    <td class="price-val">${r.price != null ? '$'+r.price.toFixed(2) : '—'}</td>
-    <td class="rebate-val">${r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '—'}</td>
-    <td class="offs-val">${r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '—'}</td>
+    <td class="upc-val">${r.upc || '-'}</td>
+    <td class="price-val">${r.price != null ? '$'+r.price.toFixed(2) : '-'}</td>
+    <td class="rebate-val">${r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '-'}</td>
+    <td class="offs-val">${r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '-'}</td>
     <td>${statusHtml}</td>
   </tr>`;
 }
@@ -2761,7 +2788,7 @@ document.addEventListener('drop', e => {
   if (file) { document.getElementById('fileUpload').files = e.dataTransfer.files; handleUpload({ target: { files: [file], value: '' } }); }
 });
 
-// ── MOBILE UI ──────────────────────────────────────────
+// -- MOBILE UI ------------------------------------------
 let mobPage = 1;
 const MOB_PER = 15;
 
@@ -2859,11 +2886,11 @@ function mobRender() {
         </div>
         <div class="mob-price-cell">
           <div class="mob-price-lbl">Rebate</div>
-          <div class="mob-price-val green">${r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '—'}</div>
+          <div class="mob-price-val green">${r.rebate > 0 ? '$'+r.rebate.toFixed(2) : '-'}</div>
         </div>
         <div class="mob-price-cell">
           <div class="mob-price-lbl">OFF's</div>
-          <div class="mob-price-val red">${r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '—'}</div>
+          <div class="mob-price-val red">${r.offs && parseOffs(r.offs) > 0 ? '$'+(parseOffs(r.offs)*getMultiplier(r.item||'')).toFixed(2) : '-'}</div>
         </div>
         <div class="mob-price-cell">
           <div class="mob-price-lbl">Net</div>
@@ -2922,7 +2949,7 @@ render = function() {
 
 
 
-// ── MULTI-COMPANY DATA STORE ───────────────────────────
+// -- MULTI-COMPANY DATA STORE --------------------------─
 // Category configs per company type
 const RJR_CATS = [
   { key:'CIGG',              label:'Cigarettes',         color:'var(--cigg)',  statId:'s-cigg',  cntId:'cnt-cigg',  mobCntId:'mob-cnt-cigg',  mobStatId:'ms-cigg',  colorClass:'c-accent' },
@@ -3067,7 +3094,7 @@ function buildCategoryUI() {
   const cats = co.cats;
   const isAra = isARA();
 
-  // ── Sidebar category filters ──
+  // -- Sidebar category filters --
   const sidebarFilters = document.getElementById('catFiltersSidebar');
   if (sidebarFilters) {
     sidebarFilters.innerHTML = cats.map(c => `
@@ -3081,7 +3108,7 @@ function buildCategoryUI() {
 
   buildGroupFilters();
 
-  // ── Drawer category filters (mobile) ──
+  // -- Drawer category filters (mobile) --
   const drawerFilters = document.getElementById('catFiltersDrawer');
   if (drawerFilters) {
     drawerFilters.innerHTML = cats.map(c => `
@@ -3093,21 +3120,21 @@ function buildCategoryUI() {
       </button>`).join('');
   }
 
-  // ── Stats bar labels (dynamic per company) ──
+  // -- Stats bar labels (dynamic per company) --
   cats.forEach(c => {
     const lbl = document.getElementById('stat-lbl-'+c.statId.replace('s-',''));
     const val = document.getElementById(c.statId);
     if(lbl) lbl.textContent = c.label;
     if(val) val.className = 'sbar-num ' + c.colorClass;
   });
-  // Carton slot — show/hide (also shows for CANDY's Regular category)
+  // Carton slot - show/hide (also shows for CANDY's Regular category)
   const ctnLbl = document.getElementById('stat-lbl-ctn');
   const ctnCat = cats.find(c => c.key === 'Carton' || c.key === 'Regular');
   if(ctnLbl) ctnLbl.textContent = ctnCat ? ctnCat.label : '';
   const ctnCell = document.getElementById('sbar-ctn-cell');
   if(ctnCell) ctnCell.style.display = ctnCat ? '' : 'none';
 
-  // ── Mobile cat pills ──
+  // -- Mobile cat pills --
   const mobPills = document.getElementById('mobCatPills');
   if (mobPills) {
     const allBtn = mobPills.querySelector('[data-cat="ALL"]');
@@ -3120,13 +3147,13 @@ function buildCategoryUI() {
       </button>`).join('');
   }
 
-  // ── Mobile stats labels ──
+  // -- Mobile stats labels --
   const ms1 = document.getElementById('mob-stat-lbl-1');
   const ms2 = document.getElementById('mob-stat-lbl-2');
   if (ms1) ms1.textContent = cats[0]?.label || '';
   if (ms2) ms2.textContent = cats[1]?.label || '';
 
-  // ── Category dropdown in Add/Edit modal ──
+  // -- Category dropdown in Add/Edit modal --
   const catSel = document.getElementById('f-cat');
   if (catSel) {
     if (currentCompany === 'CANDY') {
@@ -3148,7 +3175,7 @@ function buildCategoryUI() {
         <option value="Carton">Cartons (CIGG ×10)</option>
         <option value="${vapes}">Vapes</option>
         <option value="${otbc}">${otbc}</option>
-        <option value="${otbc} -5CAN">${otbc} — 5-Can Roll</option>`;
+        <option value="${otbc} -5CAN">${otbc} - 5-Can Roll</option>`;
       catSel.onchange = onModalCatChange;
     }
   }
@@ -3202,9 +3229,9 @@ function updateTabCounts() {
 }
 
 
-// ── INIT ───────────────────────────────────────────────
+// -- INIT ----------------------------------------------─
 companies.RJR.data = [
-// RJR-Vapes — VUSE POWER UNIT KIT
+// RJR-Vapes - VUSE POWER UNIT KIT
   {id:1,item:'VUSE POWER UNIT KIT',desc:'VUSE ALTO SLATE POWER UNIT KIT SGL - PK',upc:'849205018591',cat:'RJR-Vapes',price:10.99,rebate:0,offs:''},
   {id:2,item:'VUSE POWER UNIT KIT',desc:'VUSE ALTO BLUE POWER UNIT KIT SGL - PK',upc:'849205021140',cat:'RJR-Vapes',price:10.99,rebate:0,offs:''},
   {id:3,item:'VUSE POWER UNIT KIT',desc:'VUSE ALTO RED POWER UNIT KIT SGL - PK',upc:'849205021171',cat:'RJR-Vapes',price:10.99,rebate:0,offs:''},
@@ -3450,8 +3477,171 @@ companies.RJR.data = [
   {id:222,item:'KODIAK 5-ROLL',desc:'KODIAK LONG CUT WINTERGREEN MOIST SNUFF 1.2 OZ 5 CN - ROLL',upc:'042100002348',cat:'RJR Other Tobacco',price:40.85,rebate:0.50,offs:''},
   // LEVI GARRETT
   {id:223,item:'LEVI GARRETT',desc:'LEVI GARRETT SIGNATURE SNUFF TOBACCO 3 OZ SGL - CN',upc:'042100026399',cat:'RJR Other Tobacco',price:6.80,rebate:0,offs:''},
+  {id:224,upc:'026100016864',item:'NEWPORT MENTHOL',desc:'NEWPORT 100 BOX $1.00 OFF',price:99.7,rebate:4.5,offs:'10.0',cat:'Carton'},
+  {id:225,upc:'026100016895',item:'NEWPORT MENTHOL',desc:'NEWPORT BOX $1.00 OFF',price:99.7,rebate:4.5,offs:'10.0',cat:'Carton'},
+  {id:226,upc:'026100865745',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 100 BOX $0.50 OFF',price:104.7,rebate:4.5,offs:'5.0',cat:'Carton'},
+  {id:227,upc:'026100865752',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 85 BOX $0.50 OFF',price:104.7,rebate:4.5,offs:'5.0',cat:'Carton'},
+  {id:228,upc:'026100016604',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 100 BOX $0.25 OFF',price:107.2,rebate:4.5,offs:'2.5',cat:'Carton'},
+  {id:229,upc:'026100016635',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 85 BOX $0.25 OFF',price:107.2,rebate:4.5,offs:'2.5',cat:'Carton'},
+  {id:230,upc:'026100805734',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 100 BOX',price:109.7,rebate:4.5,offs:'',cat:'Carton'},
+  {id:231,upc:'026100805758',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 85 BOX',price:109.7,rebate:4.5,offs:'',cat:'Carton'},
+  {id:232,upc:'026100805772',item:'NEWPORT SOFT PACK',desc:'NEWPORT MENTHOL 100 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
+  {id:233,upc:'026100805789',item:'NEWPORT SOFT PACK',desc:'NEWPORT MENTHOL 85 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
+  {id:234,upc:'026100016819',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST 85 BOX $1.00 OFF',price:104.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:235,upc:'026100016727',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST GOLD 85 BOX $1.00 OFF',price:104.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:236,upc:'026100016697',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST 85 BOX $0.50 OFF',price:109.2,rebate:0.0,offs:'5.0',cat:'Carton'},
+  {id:237,upc:'026100016789',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST GOLD 85 BOX $0.50 OFF',price:109.2,rebate:0.0,offs:'5.0',cat:'Carton'},
+  {id:238,upc:'026100016758',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:239,upc:'026100016666',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST GOLD 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:240,upc:'026100805802',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL BLUE 100 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:241,upc:'026100805833',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL BLUE 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:242,upc:'026100805727',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL GOLD 100 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:243,upc:'026100805857',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL GOLD 100 SOFT PACK',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:244,upc:'026100805765',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL GOLD 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:245,upc:'026100805796',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL GOLD 85 SOFT PACK',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:246,upc:'026100016239',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL PLATINUM BLUE 100 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:247,upc:'026100016291',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL PLATINUM BLUE 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:248,upc:'026100806687',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL SMOOTH SELECT 100 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:249,upc:'026100806700',item:'NEWPORT SUPPORT',desc:'NEWPORT MENTHOL SMOOTH SELECT 85 BOX',price:114.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:250,upc:'026100107784',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL 100 BOX $1.00 OFF',price:90.9,rebate:1.5,offs:'10.0',cat:'Carton'},
+  {id:251,upc:'026100107814',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL 85 BOX $1.00 OFF',price:90.9,rebate:1.5,offs:'10.0',cat:'Carton'},
+  {id:252,upc:'026100806618',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL GOLD 100 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:253,upc:'026100806601',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL GOLD 85 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:254,upc:'026100806571',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL RED 100 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:255,upc:'026100806564',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL RED 85 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:256,upc:'026100806762',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL SMOOTH GOLD 100 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:257,upc:'026100806779',item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL SMOOTH GOLD 85 BOX',price:100.9,rebate:1.5,offs:'',cat:'Carton'},
+  {id:258,upc:'012300510332',item:'CAMEL ALL',desc:'CAMEL CLASS BLUE BX $1.00 OFF',price:79.0,rebate:16.5,offs:'10.0',cat:'Carton'},
+  {id:259,upc:'012300510301',item:'CAMEL ALL',desc:'CAMEL CLASS FILT BX $1.00 OFF',price:79.0,rebate:16.5,offs:'10.0',cat:'Carton'},
+  {id:260,upc:'012300509725',item:'CAMEL ALL',desc:'CAMEL FILTERS 85 BOX $0.50 OFF',price:84.0,rebate:16.5,offs:'5.0',cat:'Carton'},
+  {id:261,upc:'012300509756',item:'CAMEL ALL',desc:'CAMEL BLUE 85 BOX $0.50 OFF',price:84.0,rebate:16.5,offs:'5.0',cat:'Carton'},
+  {id:262,upc:'012300911726',item:'CAMEL ALL',desc:'CAMEL CLASSIC GOLD 85 BOX $0.50 OFF',price:84.0,rebate:16.5,offs:'5.0',cat:'Carton'},
+  {id:263,upc:'012300108119',item:'CAMEL ALL',desc:'CAMEL BLUE 85 BOX $0.25 OFF',price:86.5,rebate:16.5,offs:'2.5',cat:'Carton'},
+  {id:264,upc:'012300108089',item:'CAMEL ALL',desc:'CAMEL FILTERS 85 BOX $0.25 OFF',price:86.5,rebate:16.5,offs:'2.5',cat:'Carton'},
+  {id:265,upc:'012300107136',item:'CAMEL ALL',desc:'CAMEL BLUE 85 BOX',price:89.0,rebate:16.5,offs:'',cat:'Carton'},
+  {id:266,upc:'012300103138',item:'CAMEL ALL',desc:'CAMEL FILTERS 85 BOX',price:89.0,rebate:16.5,offs:'',cat:'Carton'},
+  {id:267,upc:'012300911603',item:'CAMEL ALL',desc:'CAMEL CLASSIC GOLD 85 BOX',price:89.0,rebate:16.5,offs:'',cat:'Carton'},
+  {id:268,upc:'012300912617',item:'CAMEL CRUSH',desc:'CAMEL CRUSH BOX $1 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:269,upc:'012300509930',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MEN SILVER BOX $1 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:270,upc:'012300509909',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL BOX $1 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:271,upc:'012300108812',item:'CAMEL CRUSH',desc:'CAMEL CRUSH RICH 85 BOX $1.00 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:272,upc:'012300119870',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH 85 BOX $1.00 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:273,upc:'012300119962',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH SILVER 85 BOX $1.00 OFF',price:92.0,rebate:3.5,offs:'10.0',cat:'Carton'},
+  {id:274,upc:'012300502733',item:'CAMEL CRUSH',desc:'CAMEL CRUSH 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:275,upc:'012300502795',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:276,upc:'012300502825',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL SILVER 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:277,upc:'012300108782',item:'CAMEL CRUSH',desc:'CAMEL CRUSH RICH 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:278,upc:'012300119849',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:279,upc:'012300119931',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH SILVER 85 BOX $0.50 OFF',price:97.0,rebate:3.5,offs:'5.0',cat:'Carton'},
+  {id:280,upc:'012300105736',item:'CAMEL CRUSH',desc:'CAMEL CRUSH 85 BOX $0.25 OFF',price:99.5,rebate:3.5,offs:'2.5',cat:'Carton'},
+  {id:281,upc:'012300105767',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL 85 BOX $0.25 OFF',price:99.5,rebate:3.5,offs:'2.5',cat:'Carton'},
+  {id:282,upc:'012300105798',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL SILVER 85 BOX $0.25 OFF',price:99.5,rebate:3.5,offs:'2.5',cat:'Carton'},
+  {id:283,upc:'012300197403',item:'CAMEL CRUSH',desc:'CAMEL CRUSH 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:284,upc:'012300193139',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:285,upc:'012300108751',item:'CAMEL CRUSH',desc:'CAMEL CRUSH RICH 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:286,upc:'012300119818',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:287,upc:'012300194136',item:'CAMEL CRUSH',desc:'CAMEL CRUSH MENTHOL SILVER 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:288,upc:'012300119900',item:'CAMEL CRUSH',desc:'CAMEL CRUSH SMOOTH SILVER 85 BOX',price:102.0,rebate:3.5,offs:'',cat:'Carton'},
+  {id:289,upc:'027200209545',item:'PALL MALL SELECT',desc:'PALL MALL SELECT BLUE 100 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:290,upc:'027200205905',item:'PALL MALL SELECT',desc:'PALL MALL SELECT BLUE 80 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:291,upc:'027200209514',item:'PALL MALL SELECT',desc:'PALL MALL SELECT GREEN 100 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:292,upc:'027200205967',item:'PALL MALL SELECT',desc:'PALL MALL SELECT GREEN 80 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:293,upc:'027200209576',item:'PALL MALL SELECT',desc:'PALL MALL SELECT RED 100 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:294,upc:'027200205936',item:'PALL MALL SELECT',desc:'PALL MALL SELECT RED 80 BX',price:49.9,rebate:9.0,offs:'',cat:'Carton'},
+  {id:295,upc:'043300211189',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 100 BOX $1.50 OFF',price:51.9,rebate:9.5,offs:'15.0',cat:'Carton'},
+  {id:296,upc:'043300211158',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 85 BOX $1.50 OFF',price:51.9,rebate:9.5,offs:'15.0',cat:'Carton'},
+  {id:297,upc:'043300211240',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 100 BOX $1.50 OFF',price:51.9,rebate:9.5,offs:'15.0',cat:'Carton'},
+  {id:298,upc:'043300211219',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 85 BOX $1.50 OFF',price:51.9,rebate:9.5,offs:'15.0',cat:'Carton'},
+  {id:299,upc:'043300187668',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE BLUE $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:300,upc:'043300187576',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE GREEN $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:301,upc:'043300109158',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 100 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:302,upc:'043300109066',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 85 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:303,upc:'043300187248',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 100 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:304,upc:'043300187309',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 85 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:305,upc:'043300187484',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 100 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:306,upc:'043300187422',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 85 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:307,upc:'043300109332',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 100 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:308,upc:'043300109240',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 85 BOX $1.00 OFF',price:56.9,rebate:9.5,offs:'10.0',cat:'Carton'},
+  {id:309,upc:'043300187637',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE BLUE $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:310,upc:'043300187545',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE GREEN $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:311,upc:'043300109127',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 100 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:312,upc:'043300109035',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 85 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:313,upc:'043300187217',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 100 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:314,upc:'043300187279',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 85 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:315,upc:'043300187453',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 100 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:316,upc:'043300109301',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 100 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:317,upc:'043300109219',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 85 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:318,upc:'043300187392',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 85 BOX $0.50 OFF',price:61.9,rebate:9.5,offs:'5.0',cat:'Carton'},
+  {id:319,upc:'043300187606',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE BLUE',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:320,upc:'043300109097',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 100 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:321,upc:'043300109004',item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 85 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:322,upc:'043300187156',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 85 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:323,upc:'043300187514',item:'LUCKY STRIKE',desc:'LUCKY STRIKE ACTIVATE GREEN',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:324,upc:'043300187187',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL 100 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:325,upc:'043300187361',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 100 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:326,upc:'043300187330',item:'LUCKY STRIKE',desc:'LUCKY STRIKE MENTHOL SILVER 85 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:327,upc:'043300109271',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 100 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:328,upc:'043300109189',item:'LUCKY STRIKE',desc:'LUCKY STRIKE RED 85 BOX',price:66.9,rebate:9.5,offs:'',cat:'Carton'},
+  {id:329,upc:'027200206858',item:'PALL MALL',desc:'PALL MALL RED FILT 100 BOX $1.00 OFF',price:79.1,rebate:11.5,offs:'10.0',cat:'Carton'},
+  {id:330,upc:'027200206889',item:'PALL MALL',desc:'PALL MALL RED FILTER BOX $1.00 OFF',price:79.1,rebate:11.5,offs:'10.0',cat:'Carton'},
+  {id:331,upc:'027200206766',item:'PALL MALL',desc:'PALL MALL BLUE FILT 100 BOX $1.00 OFF',price:79.1,rebate:11.5,offs:'10.0',cat:'Carton'},
+  {id:332,upc:'027200206797',item:'PALL MALL',desc:'PALL MALL BLUE FILT BOX $1.00 OFF',price:79.1,rebate:11.5,offs:'10.0',cat:'Carton'},
+  {id:333,upc:'027200206827',item:'PALL MALL',desc:'PALL MALL MEN GRN FILT 100 BX $1.00',price:79.1,rebate:11.5,offs:'10.0',cat:'Carton'},
+  {id:334,upc:'027200347360',item:'PALL MALL',desc:'PALL MALL MENTHOL BLACK 85 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:335,upc:'027200846726',item:'PALL MALL',desc:'PALL MALL MENTHOL CLASSIC SILVER 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:336,upc:'027200347391',item:'PALL MALL',desc:'PALL MALL MENTHOL BLACK 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:337,upc:'027200846658',item:'PALL MALL',desc:'PALL MALL MENTHOL CLASSIC SILVER 85 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:338,upc:'027200347452',item:'PALL MALL',desc:'PALL MALL MENTHOL WHITE 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:339,upc:'027200348077',item:'PALL MALL',desc:'PALL MALL RED 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:340,upc:'027200348091',item:'PALL MALL',desc:'PALL MALL RED 85 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:341,upc:'027200347698',item:'PALL MALL',desc:'PALL MALL BLUE 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:342,upc:'027200348015',item:'PALL MALL',desc:'PALL MALL BLUE 85 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:343,upc:'027200348039',item:'PALL MALL',desc:'PALL MALL MENTHOL 100 BOX $0.50 OFF',price:84.1,rebate:11.5,offs:'5.0',cat:'Carton'},
+  {id:344,upc:'027200105915',item:'PALL MALL',desc:'PALL MALL RED 100 BOX $0.25 OFF',price:86.6,rebate:11.5,offs:'2.5',cat:'Carton'},
+  {id:345,upc:'027200105854',item:'PALL MALL',desc:'PALL MALL RED 85 BOX $0.25 OFF',price:86.6,rebate:11.5,offs:'2.5',cat:'Carton'},
+  {id:346,upc:'027200105885',item:'PALL MALL',desc:'PALL MALL BLUE 100 BOX $0.25 OFF',price:86.6,rebate:11.5,offs:'2.5',cat:'Carton'},
+  {id:347,upc:'027200105823',item:'PALL MALL',desc:'PALL MALL BLUE 85 BOX $0.25 OFF',price:86.6,rebate:11.5,offs:'2.5',cat:'Carton'},
+  {id:348,upc:'027200018628',item:'PALL MALL',desc:'PALL MALL BLUE 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:349,upc:'027200018543',item:'PALL MALL',desc:'PALL MALL BLUE 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:350,upc:'027200018659',item:'PALL MALL',desc:'PALL MALL MENTHOL 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:351,upc:'027200018598',item:'PALL MALL',desc:'PALL MALL MENTHOL 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:352,upc:'027200347278',item:'PALL MALL',desc:'PALL MALL MENTHOL BLACK 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:353,upc:'027200347247',item:'PALL MALL',desc:'PALL MALL MENTHOL BLACK 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:354,upc:'027200846696',item:'PALL MALL',desc:'PALL MALL MENTHOL CLASSIC SILVER 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:355,upc:'027200347339',item:'PALL MALL',desc:'PALL MALL MENTHOL WHITE 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:356,upc:'027200846627',item:'PALL MALL',desc:'PALL MALL MENTHOL CLASSIC SILVER 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:357,upc:'027200347308',item:'PALL MALL',desc:'PALL MALL MENTHOL WHITE 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:358,upc:'027200731527',item:'PALL MALL',desc:'PALL MALL ORANGE 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:359,upc:'027200731459',item:'PALL MALL',desc:'PALL MALL ORANGE 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:360,upc:'027200018673',item:'PALL MALL',desc:'PALL MALL RED 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:361,upc:'027200018512',item:'PALL MALL',desc:'PALL MALL RED 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
+  {id:362,upc:'047995200473',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:363,upc:'047995200503',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:364,upc:'047995200015',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT NON-FILTER BROWN KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:365,upc:'047995200305',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE HUNTER KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:366,upc:'047995855178',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH ROBUST BLACK KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:367,upc:'047995855185',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:368,upc:'047995855192',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:369,upc:'047995855314',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE CELADON KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:370,upc:'047995855338',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT MELLOW ORANGE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:371,upc:'047995856021',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH GRAY KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:372,upc:'047995856045',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED DARK BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:373,upc:'047995200442',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK SKY KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:374,upc:'047995200534',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MENTHOL MELLOW GREEN CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:375,upc:'047995200565',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1.00 OFF/PK TURQUOISE KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:376,upc:'047995200596',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW GOLD KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:377,upc:'047995200411',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC SKY KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:378,upc:'047995855154',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL MELLOW GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:379,upc:'047995855321',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL DARK GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:380,upc:'047995855345',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC TURQUOISE KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:381,upc:'047995855352',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC GOLD KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:382,upc:'047995200657',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT SMOOTH GOLD $1.00 OFF',price:93.9,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:383,upc:'047995200749',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED $1.00 OFF',price:93.9,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:384,upc:'047995200718',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED',price:103.9,rebate:0.0,offs:'',cat:'Carton'},
+  {id:385,upc:'047995200626',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT SMOOTH GOLD',price:103.9,rebate:0.0,offs:'',cat:'Carton'},
 ];
-companies.RJR.nextId = 224;
+
+companies.RJR.nextId = 386;
 
 companies.ALTRIA.data = [
   {id:1,upc:'042100011289',item:'GRIZZLY',desc:'GRIZZLY $0.50 OFF WINTERGREEN SNUFF TOBACCO 5 CT 1.2 OZ SGL - BOX',price:5.99,rebate:0.00,offs:'0.5',cat:'OTBC'},
@@ -5663,7 +5853,7 @@ companies.ARA.data = [
 companies.ARA.nextId = 1445;
 
 
-// ── LOCALSTORAGE SYNC ──────────────────────────────────
+// -- LOCALSTORAGE SYNC ----------------------------------
 const LS_KEY = 'priceDashboard_v1';
 
 function saveToStorage() {
@@ -5679,20 +5869,20 @@ function saveToStorage() {
     };
   });
 
-  // ── 1. Always save to localStorage (fast, offline backup) ──
+  // -- 1. Always save to localStorage (fast, offline backup) --
   try {
     localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
   } catch(e) {
     console.warn('localStorage save failed:', e);
   }
 
-  // ── 2. Save to Firebase (persistent, multi-device) ──
+  // -- 2. Save to Firebase (persistent, multi-device) --
   saveToFirebase(snapshot);
 }
 
 function saveToFirebase(snapshot) {
   if (!window._firebaseReady || !window.fbDb) {
-    // Firebase not configured yet — silently skip, localStorage is the fallback
+    // Firebase not configured yet - silently skip, localStorage is the fallback
     return;
   }
   try {
@@ -5721,7 +5911,7 @@ function showFbStatus(state) {
     setTimeout(() => { el.style.background = '#18a058'; }, 2000);
   } else if (state === 'error') {
     el.style.background = '#e07820';
-    el.title = 'Cloud sync failed — data saved locally';
+    el.title = 'Cloud sync failed - data saved locally';
   } else if (state === 'loading') {
     el.style.background = '#1677ff';
     el.title = 'Loading from cloud...';
@@ -5733,7 +5923,7 @@ function applyFirebaseSnapshot(fbData) {
   // Stale-data guard: skip if Firebase has fewer items than built-in
   let fbIsStale = false;
   Object.keys(companies).forEach(co => {
-    const builtInCount = companies[co].data.length;
+    const builtInCount = (typeof BUILT_IN_COUNTS !== 'undefined' ? BUILT_IN_COUNTS[co] : null) || companies[co].data.length;
     const fbCount = (fbData[co] && Array.isArray(fbData[co].data)) ? fbData[co].data.length : 0;
     if (fbCount < builtInCount) fbIsStale = true;
   });
@@ -5777,14 +5967,14 @@ function loadFromStorage() {
     );
     if (!hasData) {
       localStorage.removeItem(LS_KEY);
-      console.warn('Storage had empty data — cleared, using built-in data');
+      console.warn('Storage had empty data - cleared, using built-in data');
       return false;
     }
-    // ── Stale-data guard ─────────────────────────────────────────────
+    // -- Stale-data guard --------------------------------------------─
     // If localStorage has fewer items than built-in, clear it and use built-in
     let lsIsStale = false;
     Object.keys(companies).forEach(co => {
-      const builtInCount = companies[co].data.length;
+      const builtInCount = (typeof BUILT_IN_COUNTS !== 'undefined' ? BUILT_IN_COUNTS[co] : null) || companies[co].data.length;
       const lsCount = (snapshot[co] && Array.isArray(snapshot[co].data)) ? snapshot[co].data.length : 0;
       if (lsCount < builtInCount) {
         console.warn('localStorage ' + co + ' stale: ' + lsCount + ' vs built-in ' + builtInCount);
@@ -5793,10 +5983,10 @@ function loadFromStorage() {
     });
     if (lsIsStale) {
       localStorage.removeItem(LS_KEY);
-      console.log('localStorage stale — cleared, using built-in data');
+      console.log('localStorage stale - cleared, using built-in data');
       return false;
     }
-    // ─────────────────────────────────────────────────────────────────
+    // ----------------------------------------------------------------─
     Object.keys(companies).forEach(co => {
       if (snapshot[co] && snapshot[co].data && snapshot[co].data.length > 0) {
         companies[co].data = snapshot[co].data;
@@ -5857,12 +6047,12 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   if (t) { t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000); }
 }
-// ── END LOCALSTORAGE SYNC ──────────────────────────────
+// -- END LOCALSTORAGE SYNC ------------------------------
 
 // Track changed item IDs per company
 Object.keys(companies).forEach(k => companies[k]._changed = new Set());
 
-// ── LOAD DATA: Firebase first, localStorage as fallback, built-in as last resort ──
+// -- LOAD DATA: Firebase first, localStorage as fallback, built-in as last resort --
 async function initDashboard() {
   showFbStatus('loading');
 
@@ -5901,11 +6091,11 @@ async function loadFromFirebase() {
     );
     if (!hasData) return false;
 
-    // ── Stale-data guard ──────────────────────────────────────────────
+    // -- Stale-data guard ----------------------------------------------
     // If Firebase has FEWER items than built-in for any company,
     // it means Firebase is out of date. Push built-in data up and bail.
-    const builtInCounts = {};
-    Object.keys(companies).forEach(co => { builtInCounts[co] = companies[co].data.length; });
+    const builtInCounts = (typeof BUILT_IN_COUNTS !== 'undefined') ? BUILT_IN_COUNTS : {};
+    if (!Object.keys(builtInCounts).length) { Object.keys(companies).forEach(co => { builtInCounts[co] = companies[co].data.length; }); }
 
     let fbIsStale = false;
     Object.keys(companies).forEach(co => {
@@ -5917,12 +6107,12 @@ async function loadFromFirebase() {
     });
 
     if (fbIsStale) {
-      console.log('Built-in data is newer — pushing to Firebase...');
+      console.log('Built-in data is newer - pushing to Firebase...');
       // Push built-in data to Firebase so it's up to date
       setTimeout(() => saveToFirebase(), 2000);
       return false; // use built-in data
     }
-    // ─────────────────────────────────────────────────────────────────
+    // ----------------------------------------------------------------─
 
     Object.keys(companies).forEach(co => {
       if (fbData[co] && Array.isArray(fbData[co].data) && fbData[co].data.length > 0) {
@@ -5950,7 +6140,7 @@ initDashboard();
 // ════════════════════════════════════════════
 // ADMIN PANEL JS
 // ════════════════════════════════════════════
-let adminPass = localStorage.getItem('priceAdminPass') || 'admin123';
+let adminPass = localStorage.getItem('priceAdminPass') || '903290';
 let adminLoggedIn = false;
 let currentAdmTab = 'overview';
 
@@ -5988,7 +6178,7 @@ function admLog(color, msg) {
   saveAdmLog();
 }
 
-// ── OPEN / CLOSE ──
+// -- OPEN / CLOSE --
 function openAdminPanel() {
   const ov = document.getElementById('adminOverlay');
   ov.style.display = 'flex';
@@ -6044,7 +6234,7 @@ function renderAdmTab(tab) {
   else if (tab === 'export')   c.innerHTML = admRenderExport();
 }
 
-// ── GET LIVE DATA ──
+// -- GET LIVE DATA --
 function admGetCompanies() {
   return Object.keys(ADM_CO_META).map(id => {
     const co = companies[id];
@@ -6057,7 +6247,7 @@ function admGetCompanies() {
   });
 }
 
-// ── OVERVIEW ──
+// -- OVERVIEW --
 function admRenderOverview() {
   const cos = admGetCompanies();
   const totalItems = cos.reduce((s,c) => s+c.items, 0);
@@ -6134,7 +6324,77 @@ function admRenderOverview() {
   </div>`;
 }
 
-// ── COMPANIES ──
+// -- COMPANIES --
+// pending delete state
+let _pendingDelete = null;
+
+function admDeleteGroup(coId, groupName) {
+  const co = companies[coId];
+  if (!co) return;
+  const count = co.data.filter(r => r.item === groupName).length;
+  _pendingDelete = { coId, groupName, count };
+  document.getElementById('deleteGroupModalMsg').innerHTML =
+    'You are about to delete <strong>' + count + ' item' + (count !== 1 ? 's' : '') + '</strong> from group:<br>' +
+    '<span style="font-family:JetBrains Mono,monospace;font-weight:700;color:var(--ink);">' + groupName + '</span><br>' +
+    '<span style="color:var(--ink3);">Company: ' + coId + '</span>';
+  const modal = document.getElementById('deleteGroupModal');
+  modal.style.display = 'flex';
+}
+
+function closeDeleteConfirm() {
+  _pendingDelete = null;
+  document.getElementById('deleteGroupModal').style.display = 'none';
+}
+
+function confirmDeleteGroup() {
+  if (!_pendingDelete) return;
+  const { coId, groupName, count } = _pendingDelete;
+  closeDeleteConfirm();
+  const co = companies[coId];
+  if (!co) return;
+  co.data = co.data.filter(r => r.item !== groupName);
+  co.data.forEach((r, i) => { r.id = i + 1; });
+  co.nextId = co.data.length + 1;
+  if (currentCompany === coId) {
+    data = co.data;
+    nextId = co.nextId;
+    render();
+    if (window.innerWidth <= 768) mobRender();
+    buildCategoryUI();
+    updateTabCounts();
+  }
+  saveToStorage();
+  saveToFirebase();
+  showToast('Deleted group "' + groupName + '" (' + count + ' items)');
+  renderAdmTab('companies');
+}
+
+function admRenderDeleteGroups(coId) {
+  const co = companies[coId];
+  if (!co || !co.data.length) return '<p style="color:var(--ink3);font-size:0.75rem;">No items</p>';
+  const groupMap = {};
+  co.data.forEach(r => { groupMap[r.item] = (groupMap[r.item] || 0) + 1; });
+  const groups = Object.entries(groupMap).sort((a,b) => a[0].localeCompare(b[0]));
+  let html = '<div style="max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;">';
+  groups.forEach(([grp, cnt], i) => {
+    const safeId = 'dg_' + coId + '_' + i;
+    window._dgMap = window._dgMap || {};
+    window._dgMap[safeId] = { coId, grp };
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:var(--card2);border-radius:8px;font-size:0.71rem;">';
+    html += '<span style="font-family:JetBrains Mono,monospace;color:var(--ink2);flex:1;margin-right:8px;">' + grp + ' <span style="color:var(--ink3);">(' + cnt + ')</span></span>';
+    html += "<button onclick=\"admDeleteGroupById('" + safeId + "');\" style=\"flex-shrink:0;background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:0.68rem;font-weight:700;cursor:pointer;\">Delete</button>";
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function admDeleteGroupById(safeId) {
+  const entry = window._dgMap && window._dgMap[safeId];
+  if (!entry) return;
+  admDeleteGroup(entry.coId, entry.grp);
+}
+
 function admRenderCompanies() {
   const cos = admGetCompanies();
   return `<div class="adm-co-grid" style="grid-template-columns:repeat(2,1fr)">
@@ -6148,7 +6408,7 @@ function admRenderCompanies() {
         </div>
       </div>
       <div style="font-size:0.58rem;color:var(--ink3);margin-bottom:10px;">
-        Categories: ${companies[co.id]?.cats?.map(c=>c.label).join(' · ') || '—'}
+        Categories: ${companies[co.id]?.cats?.map(c=>c.label).join(' · ') || '-'}
       </div>
       <div class="adm-co-stats">
         <div class="adm-co-stat">
@@ -6170,11 +6430,15 @@ function admRenderCompanies() {
         <button class="btn btn-ghost btn-sm" onclick="admClearChanged('${co.id}')">✓ Clear Highlights</button>
         <button class="btn btn-danger btn-sm" onclick="admReset('${co.id}')">✕ Reset Prices</button>
       </div>
+      <div style="margin-top:14px;">
+        <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;color:var(--ink3);text-transform:uppercase;margin-bottom:8px;">Delete Group</div>
+        ${admRenderDeleteGroups(co.id)}
+      </div>
     </div>`).join('')}
   </div>`;
 }
 
-// ── USERS ──
+// -- USERS --
 function admRenderUsers() {
   return `
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -6231,9 +6495,9 @@ function admRenderUsers() {
     <div style="margin-bottom:10px;">
       <label style="font-size:0.5rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink3);display:block;margin-bottom:5px;">Role</label>
       <select id="adm-nu-role" style="width:100%;padding:8px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:0.7rem;background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace;">
-        <option value="viewer">Viewer — Read only</option>
-        <option value="editor">Editor — Add/Edit items</option>
-        <option value="admin">Admin — Full access</option>
+        <option value="viewer">Viewer - Read only</option>
+        <option value="editor">Editor - Add/Edit items</option>
+        <option value="admin">Admin - Full access</option>
       </select>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
@@ -6243,7 +6507,7 @@ function admRenderUsers() {
   </div>`;
 }
 
-// ── PERMISSIONS ──
+// -- PERMISSIONS --
 function admRenderPermissions() {
   return admUsers.map(u => `
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;">
@@ -6268,7 +6532,7 @@ function admRenderPermissions() {
   </div>`).join('');
 }
 
-// ── ACTIVITY ──
+// -- ACTIVITY --
 function admRenderActivity() {
   return `
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
@@ -6284,7 +6548,7 @@ function admRenderActivity() {
   </div>`;
 }
 
-// ── SETTINGS ──
+// -- SETTINGS --
 function admRenderSettings() {
   return `
   <!-- Firebase Configuration Card -->
@@ -6370,7 +6634,7 @@ function admRenderSettings() {
 
 function admTestFirebase() {
   if (!window._firebaseReady || !window.fbDb) {
-    toast('⚠ Firebase not configured yet — open this file and fill in firebaseConfig');
+    toast('⚠ Firebase not configured yet - open this file and fill in firebaseConfig');
     const el = document.getElementById('fbAdminStatus');
     if (el) { el.textContent = '✗ Not Configured'; el.style.background='rgba(232,40,90,0.1)'; el.style.color='#e8285a'; }
     return;
@@ -6411,7 +6675,7 @@ function admForceSyncToFirebase() {
   window.fbSet(window.fbRef(window.fbDb, 'dashboard'), snapshot)
     .then(() => {
       toast(`✓ Pushed ${total} items to Firebase cloud`);
-      admLog('#1677ff', `Force-pushed all data to Firebase — ${total} items`);
+      admLog('#1677ff', `Force-pushed all data to Firebase - ${total} items`);
       showFbStatus('saved');
     })
     .catch(err => {
@@ -6449,7 +6713,7 @@ function admForceSyncFromFirebase() {
       updateTabCounts();
       showFbStatus('saved');
       toast(`✓ Pulled ${total} items from Firebase`);
-      admLog('#1677ff', `Force-pulled from Firebase — ${total} items`);
+      admLog('#1677ff', `Force-pulled from Firebase - ${total} items`);
     })
     .catch(err => {
       toast('✗ Pull failed: ' + err.message);
@@ -6465,7 +6729,7 @@ function admClearAllData() {
   if (window._firebaseReady && window.fbDb) {
     window.fbSet(window.fbRef(window.fbDb, 'dashboard'), null)
       .then(() => toast('✓ All data cleared from cloud and local storage'))
-      .catch(() => toast('✓ Local cleared — Firebase clear failed'));
+      .catch(() => toast('✓ Local cleared - Firebase clear failed'));
   } else {
     toast('✓ Local storage cleared');
   }
@@ -6477,7 +6741,7 @@ function showFbStatus(state) {
   const dots   = ['fbStatusDot','fbStatusDotMob'].map(id => document.getElementById(id));
   const texts  = ['fbStatusText','fbStatusTextMob'].map(id => document.getElementById(id));
   const colors = { saved:'#18a058', error:'#e07820', loading:'#1677ff' };
-  const titles = { saved:'Synced to cloud ✓', error:'Cloud sync failed — saved locally', loading:'Connecting...' };
+  const titles = { saved:'Synced to cloud ✓', error:'Cloud sync failed - saved locally', loading:'Connecting...' };
   const labels = { saved:'Synced', error:'Offline', loading:'Cloud' };
   dots.forEach(d  => { if (d) { d.style.background = colors[state]||'#888'; d.title = titles[state]||''; } });
   texts.forEach(t => { if (t) t.textContent = labels[state] || 'Cloud'; });
@@ -6487,8 +6751,8 @@ function showFbStatus(state) {
 // END FIREBASE HELPER FUNCTIONS
 // ════════════════════════════════════════════
 
-// ── ADMIN ACTIONS ──
-// ── ADMIN EXPORT PANEL ──────────────────────────────────────
+// -- ADMIN ACTIONS --
+// -- ADMIN EXPORT PANEL --------------------------------------
 function admRenderExport() {
   const cos = admGetCompanies();
   return `
@@ -6603,8 +6867,8 @@ function admExportFull(coId) {
 
   const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   downloadCSV(csv, `${coId}-prices-${fmt}-${today()}.csv`);
-  admLog('#1677ff', `Exported ${coId} (${fmt}) — ${filtered.length} items`);
-  toast(`✓ Exported ${coId} — ${filtered.length} items`);
+  admLog('#1677ff', `Exported ${coId} (${fmt}) - ${filtered.length} items`);
+  toast(`✓ Exported ${coId} - ${filtered.length} items`);
 }
 
 function admExportAll(mode = 'combined') {
@@ -6620,8 +6884,8 @@ function admExportAll(mode = 'combined') {
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const total = rows.length - 1;
     downloadCSV(csv, `ALL-companies-prices-${today()}.csv`);
-    admLog('#e8285a', `Exported ALL companies combined — ${total} total items`);
-    toast(`✓ Exported all companies — ${total} items`);
+    admLog('#e8285a', `Exported ALL companies combined - ${total} total items`);
+    toast(`✓ Exported all companies - ${total} items`);
   } else {
     // Export each company separately one by one
     let count = 0;
@@ -6642,18 +6906,34 @@ function admExportAll(mode = 'combined') {
 }
 
 function downloadCSV(csv, filename) {
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 300);
+  try {
+    // Try Blob approach first (desktop)
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+  } catch(e) {
+    // Fallback: data URI (works on Android)
+    const encoded = encodeURIComponent('\uFEFF' + csv);
+    const a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,' + encoded;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 1000);
+  }
 }
 
 function today() {
   return new Date().toISOString().slice(0,10);
 }
-// ── END ADMIN EXPORT PANEL ──────────────────────────────────
+// -- END ADMIN EXPORT PANEL ----------------------------------
 
 
 function admExport(coId) {
@@ -6668,7 +6948,7 @@ function admExport(coId) {
   a.href=url; a.download=coId+'-prices-export.csv';
   document.body.appendChild(a); a.click();
   setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},200);
-  admLog('#1677ff', 'Exported '+coId+' CSV — '+coData.length+' items');
+  admLog('#1677ff', 'Exported '+coId+' CSV - '+coData.length+' items');
   toast('✓ Exported '+coId+' ('+coData.length+' items)');
 }
 
@@ -6783,7 +7063,7 @@ document.getElementById('adminOverlay').addEventListener('click', e => {
 });
 
 // ════════════════════════════════════════════
-// FORGOT PASSWORD / OTP JS  — Real Netlify Backend
+// FORGOT PASSWORD / OTP JS  - Real Netlify Backend
 // ════════════════════════════════════════════
 const FP_EMAIL  = 'mohammadarif.78624@gmail.com';
 const FP_MOBILE = '+91 8985464367';
@@ -6813,7 +7093,7 @@ function goFpStep(n) {
   });
 }
 
-// ── SEND OTP via Netlify Function ──
+// -- SEND OTP via Netlify Function --
 async function sendOTP(method) {
   fpOtpMethod = method;
 
@@ -6844,7 +7124,7 @@ async function sendOTP(method) {
       return;
     }
 
-    // Success — move to step 2
+    // Success - move to step 2
     document.getElementById('fpOtpSentMsg').textContent =
       `OTP sent to ${method === 'email' ? FP_EMAIL : FP_MOBILE}`;
 
@@ -6855,12 +7135,12 @@ async function sendOTP(method) {
 
   } catch (err) {
     if (btn) btn.innerHTML = origHTML;
-    // Network error — likely running as local file (not deployed yet)
+    // Network error - likely running as local file (not deployed yet)
     showLocalFallback();
   }
 }
 
-// ── Fallback for local file testing (not yet deployed) ──
+// -- Fallback for local file testing (not yet deployed) --
 function showLocalFallback() {
   const localOtp = Math.floor(100000 + Math.random() * 900000).toString();
   // Store locally for verification
@@ -6872,7 +7152,7 @@ function showLocalFallback() {
     if (boxes[i]) { boxes[i].value = d; boxes[i].classList.add('filled'); }
   });
 
-  document.getElementById('fpOtpSentMsg').textContent = '⚠ Local test mode — OTP auto-filled';
+  document.getElementById('fpOtpSentMsg').textContent = '⚠ Local test mode - OTP auto-filled';
   goFpStep(2);
   startResendTimer();
 
@@ -6881,7 +7161,7 @@ function showLocalFallback() {
   console.log('%c[LOCAL TEST] OTP: ' + localOtp, 'background:#e8285a;color:#fff;padding:4px 10px;border-radius:4px;font-size:1rem;font-weight:bold');
 }
 
-// ── VERIFY OTP via Netlify Function ──
+// -- VERIFY OTP via Netlify Function --
 async function verifyOTP() {
   const boxes   = document.querySelectorAll('.otp-box');
   const entered = [...boxes].map(b => b.value).join('');
@@ -7006,7 +7286,7 @@ function resetPassword() {
   adminLoggedIn = true;
   showAdminMain();
   admLog('#18a058', 'Password reset via OTP (' + (fpOtpMethod === 'email' ? 'Email' : 'SMS') + ')');
-  toast('✓ Password reset — you are now logged in');
+  toast('✓ Password reset - you are now logged in');
 }
 // ════════════════════════════════════════════
 // END FORGOT PASSWORD / OTP JS
@@ -7016,5 +7296,21 @@ function resetPassword() {
 // ════════════════════════════════════════════
 </script>
 
+
+<!-- Delete Group Confirm Modal -->
+<div id="deleteGroupModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;flex-direction:column;" onclick="if(event.target===this)closeDeleteConfirm()">
+  <div style="background:var(--surface);border-radius:20px;padding:28px 24px;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;">
+    <div style="font-size:2.2rem;margin-bottom:10px;">🗑️</div>
+    <div style="font-family:Syne,sans-serif;font-size:1.1rem;font-weight:800;color:var(--ink);margin-bottom:6px;">Delete Group?</div>
+    <div id="deleteGroupModalMsg" style="font-size:0.8rem;color:var(--ink2);margin-bottom:20px;line-height:1.5;"></div>
+    <div style="font-size:0.72rem;color:#dc2626;background:#fee2e2;border-radius:10px;padding:8px 12px;margin-bottom:20px;">
+      ⚠️ This will permanently delete all items in this group. This cannot be undone.
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeDeleteConfirm()" style="flex:1;padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--card2);color:var(--ink2);font-family:Syne,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">Cancel</button>
+      <button id="deleteGroupConfirmBtn" onclick="confirmDeleteGroup()" style="flex:1;padding:12px;border-radius:12px;border:none;background:#dc2626;color:#fff;font-family:Syne,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">Yes, Delete</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
