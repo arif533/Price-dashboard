@@ -1916,10 +1916,17 @@ function saveItem() {
     toast('Item added ✓');
   }
 
+  // Sync cascaded data back to company object so Firebase saves correctly
+  companies[currentCompany].data = data;
+  companies[currentCompany].nextId = nextId;
+
   closeModal();
   saveToStorage();
+  saveToFirebase();
   render();
   if (window.innerWidth <= 768) mobRender();
+  updateTabCounts();
+  buildCategoryUI();
 }
 
 function del(id) {
@@ -1933,14 +1940,16 @@ function del(id) {
 // -- EXPORT --------------------------------------------─
 function openExportModal() {
   const cats = getCats();
-  const groups = [...new Set(data.map(r => r.item))].sort();
+  // Use FULL company data so all categories appear regardless of active tab
+  const fullData = companies[currentCompany]?.data || data;
+  const groups = [...new Set(fullData.map(r => r.item))].sort();
 
   // Build category sections with groups
   const container = document.getElementById('export-groups-container');
   container.innerHTML = '';
 
   cats.forEach(cat => {
-    const catGroups = [...new Set(data.filter(r => r.cat === cat.key).map(r => r.item))].sort();
+    const catGroups = [...new Set(fullData.filter(r => r.cat === cat.key).map(r => r.item))].sort();
     if (!catGroups.length) return;
 
     const section = document.createElement('div');
@@ -1991,8 +2000,9 @@ function toggleAllExport(checked) {
 function updateExportCount() {
   const checked = document.querySelectorAll('.export-group-cb:checked').length;
   const total = document.querySelectorAll('.export-group-cb').length;
+  const fullData = companies[currentCompany]?.data || data;
   const itemCount = [...document.querySelectorAll('.export-group-cb:checked')].reduce((s, cb) => {
-    return s + data.filter(r => r.item === cb.value).length;
+    return s + fullData.filter(r => r.item === cb.value).length;
   }, 0);
   document.getElementById('export-sel-count').textContent = `${checked} of ${total} groups selected · ${itemCount} items`;
   document.getElementById('export-do-btn').disabled = checked === 0;
@@ -2009,25 +2019,53 @@ function updateExportCount() {
 
 function doExportCSV() {
   const selectedGroups = new Set([...document.querySelectorAll('.export-group-cb:checked')].map(cb => cb.value));
-  const exportData = data.filter(r => selectedGroups.has(r.item));
-  if (!exportData.length) { toast('No items selected'); return; }
+  if (!selectedGroups.size) { showToast('No groups selected'); return; }
 
-  const rows = [['upc_code','description','item_cost','item_price','item_rebate']];
+  // Use FULL company data — not the filtered `data` variable
+  const fullData = (companies[currentCompany] && companies[currentCompany].data) ? companies[currentCompany].data : [];
+  const exportData = fullData.filter(r => selectedGroups.has(r.item));
+  if (!exportData.length) { showToast('No items found for selected groups'); return; }
+
+  // Build CSV rows
+  const lines = [];
+  // Header row
+  lines.push('upc_code,description,item_cost,Group_Base_Price,item_rebate,GROUP,CAT,OFFS,UnitType');
+
   exportData.forEach(r => {
-    rows.push([r.upc, r.desc, r.price.toFixed(2), r.price.toFixed(2), r.rebate.toFixed(2)]);
+    const unitType = (r.cat === 'Carton') ? 'CARTON' : 'SINGLE';
+    const upc = String(r.upc || '').replace(/"/g, '""');
+    const desc = String(r.desc || '').replace(/"/g, '""');
+    const price = (r.price != null) ? Number(r.price).toFixed(2) : '0.00';
+    const rebate = (r.rebate != null) ? Number(r.rebate).toFixed(2) : '0.00';
+    const group = String(r.item || '').replace(/"/g, '""');
+    const cat = String(r.cat || '').replace(/"/g, '""');
+    const offs = String(r.offs || '').replace(/"/g, '""');
+    // UPC: use = formula to preserve leading zeros in Excel
+    lines.push('="' + upc + '","' + desc + '",0,"' + price + '","' + rebate + '","' + group + '","' + cat + '","' + offs + '","' + unitType + '"');
   });
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const BOM = '\uFEFF';
-  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${currentCompany}-prices-export.csv`;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 200);
+
+  const csv = lines.join('\n');
+  const filename = currentCompany + '-export-' + today() + '.csv';
+
+  // Download — try multiple methods for mobile compatibility
+  try {
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { URL.revokeObjectURL(url); if (a.parentNode) a.parentNode.removeChild(a); }, 2000);
+  } catch(err) {
+    const encoded = encodeURIComponent('\uFEFF' + csv);
+    window.location.href = 'data:text/csv;charset=utf-8,' + encoded;
+  }
+
   document.getElementById('exportModal').classList.remove('open');
-  toast(`✓ Exported ${exportData.length} items`);
+  showToast('Exported ' + exportData.length + ' items (' + selectedGroups.size + ' groups)');
 }
 
 function closeExportModal() {
@@ -2502,14 +2540,15 @@ function parseAndPreview(csvText, sourceType) {
 
   // Column mapping - flexible
   const colMap = {
-    upc: findCol(headers, ['upc_code','upc','barcode']),
-    desc: findCol(headers, ['description','desc','name','product']),
-    cost: findCol(headers, ['item_cost','cost']),
-    price: findCol(headers, ['item_price','price','retail']),
-    rebate: findCol(headers, ['item_rebate','rebate']),
-    cat: findCol(headers, ['cat','category']),
-    offs: findCol(headers, ["off's","offs","off"]),
-    item: findCol(headers, ['item','item_name','brand']),
+    upc:      findCol(headers, ['upc_code','upc','barcode']),
+    desc:     findCol(headers, ['description','desc','name','product']),
+    cost:     findCol(headers, ['item_cost','cost']),
+    price:    findCol(headers, ['group_base_price','item_price','price','retail']),
+    rebate:   findCol(headers, ['item_rebate','rebate']),
+    cat:      findCol(headers, ['cat','category','unittype']),
+    offs:     findCol(headers, ["off's","offs","off"]),
+    item:     findCol(headers, ['group','item','item_name','brand']),
+    unittype: findCol(headers, ['unittype','unit_type','size']),
   };
 
   const newItems = [], dupItems = [], skipItems = [];
@@ -2525,9 +2564,25 @@ function parseAndPreview(csvText, sourceType) {
     const desc  = getRaw(colMap.desc);
     const price = parsePrice(getRaw(colMap.price));
     const rebate= parsePrice(getRaw(colMap.rebate));
-    const cat   = getRaw(colMap.cat).toUpperCase() || 'CIGG';
+    const rawCat  = getRaw(colMap.cat).toUpperCase();
+    const rawUnit = getRaw(colMap.unittype).toUpperCase();
+    // Map UnitType + CAT to dashboard cat
+    let cat = 'CIGG';
+    if (rawUnit === 'CARTON') cat = 'Carton';
+    else if (rawUnit === 'CAN') cat = 'RJR Other Tobacco';
+    else if (rawCat === 'CIGG') cat = 'CIGG';
+    else if (rawCat === 'OTBC') cat = 'OTBC';
+    else if (rawCat === 'VAPES') cat = 'RJR-Vapes';
+    else if (rawCat) cat = rawCat;
     const offs  = getRaw(colMap.offs);
-    const item  = getRaw(colMap.item) || inferItem(desc);
+    let item = getRaw(colMap.item) || inferItem(desc);
+    // Fix 6: ensure ROLL/5-CAN items have ROLL in their group name for proper cascade
+    if (item && !item.toUpperCase().includes('ROLL') && !item.toUpperCase().includes('5-CAN')) {
+      const descUp = desc.toUpperCase();
+      if (descUp.includes(' ROLL') || descUp.includes('5 CN -') || descUp.includes('5-CAN') || descUp.includes(' 5 CT')) {
+        item = item.trim() + ' ROLL';
+      }
+    }
 
     if (!upc || isNaN(price) || price === 0 && !desc) {
       skipItems.push({ upc, desc, price, rebate, cat, offs, item, reason: !upc ? 'Missing UPC' : 'Invalid price' });
@@ -6395,6 +6450,177 @@ function admDeleteGroupById(safeId) {
   admDeleteGroup(entry.coId, entry.grp);
 }
 
+
+function admRenderReorderGroups(coId) {
+  const co = companies[coId];
+  if (!co || !co.data.length) return '';
+  const groups = [...new Set(co.data.map(r => r.item))];
+  window._lockedGroups = window._lockedGroups || {};
+  if (!window._lockedGroups[coId]) window._lockedGroups[coId] = new Set();
+  const locked = window._lockedGroups[coId];
+
+  let html = '<div style="margin-top:16px;">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">';
+  html += '<div style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;color:var(--ink3);text-transform:uppercase;">Reorder Groups</div>';
+  html += '<div style="display:flex;gap:5px;">';
+  html += '<button onclick="admLockAll(\'' + coId + '\')" style="font-size:0.62rem;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--ink2);cursor:pointer;">🔒 Lock All</button>';
+  html += '<button onclick="admUnlockAll(\'' + coId + '\')" style="font-size:0.62rem;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--ink2);cursor:pointer;">🔓 Unlock All</button>';
+  html += '</div></div>';
+
+  html += '<div id="reo-list-' + coId + '" style="max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;" ondragover="event.preventDefault()" ondrop="admDropGroup(event,\'' + coId + '\')">';
+  groups.forEach((grp, i) => {
+    const isLocked = locked.has(grp);
+    const uid = 'reo_' + coId + '_' + i;
+    window._rgMap = window._rgMap || {};
+    window._rgMap[uid] = { coId, grp };
+    html += '<div id="' + uid + '" draggable="' + (!isLocked) + '" data-grp="' + grp.replace(/"/g,'&quot;') + '" data-co="' + coId + '"';
+    html += ' ondragstart="admDragStart(event,\'' + uid + '\')"';
+    html += ' ondragover="admDragOver(event)"';
+    html += ' ondragleave="admDragLeave(event)"';
+    html += ' ondrop="admDropOnGroup(event,\'' + coId + '\')"';
+    html += ' style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:' + (isLocked ? 'rgba(124,58,237,0.07)' : 'var(--card2)') + ';border-radius:9px;font-size:0.71rem;border:1.5px solid ' + (isLocked ? 'rgba(124,58,237,0.25)' : 'transparent') + ';transition:all 0.15s;cursor:' + (isLocked ? 'not-allowed' : 'grab') + ';">';
+    // drag handle
+    html += '<span style="color:' + (isLocked ? 'rgba(124,58,237,0.4)' : 'var(--ink3)') + ';font-size:0.9rem;user-select:none;">⠿</span>';
+    // position number
+    html += '<span style="color:var(--ink3);font-family:JetBrains Mono,monospace;min-width:18px;font-size:0.65rem;">' + (i+1) + '</span>';
+    // group name
+    html += '<span style="flex:1;font-family:JetBrains Mono,monospace;color:var(--ink2);font-size:0.7rem;">' + grp + '</span>';
+    // lock button
+    html += '<button onclick="admToggleLock(\'' + coId + '\',\'' + grp.replace(/'/g,"\\'") + '\')" title="' + (isLocked ? 'Unlock' : 'Lock position') + '" style="background:' + (isLocked ? 'rgba(124,58,237,0.15)' : 'var(--card)') + ';border:1px solid ' + (isLocked ? 'rgba(124,58,237,0.4)' : 'var(--border)') + ';border-radius:6px;padding:2px 7px;cursor:pointer;font-size:0.75rem;">' + (isLocked ? '🔒' : '🔓') + '</button>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+// drag state
+window._admDragUid = null;
+
+function admDragStart(event, uid) {
+  window._admDragUid = uid;
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.style.opacity = '0.5';
+}
+
+function admDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const el = event.currentTarget;
+  if (el && el.style) el.style.borderColor = 'var(--accent)';
+}
+
+function admDragLeave(event) {
+  const el = event.currentTarget;
+  if (el && el.style) el.style.borderColor = '';
+}
+
+function admDropOnGroup(event, coId) {
+  event.preventDefault();
+  event.stopPropagation();
+  const fromUid = window._admDragUid;
+  if (!fromUid) return;
+  const fromEntry = window._rgMap && window._rgMap[fromUid];
+  if (!fromEntry || fromEntry.coId !== coId) return;
+
+  const toGrp = event.currentTarget.dataset.grp;
+  const fromGrp = fromEntry.grp;
+  if (fromGrp === toGrp) return;
+
+  const locked = window._lockedGroups && window._lockedGroups[coId] || new Set();
+  if (locked.has(fromGrp) || locked.has(toGrp)) {
+    showToast('Cannot move locked groups');
+    return;
+  }
+
+  const co = companies[coId];
+  const groups = [...new Set(co.data.map(r => r.item))];
+  const fromIdx = groups.indexOf(fromGrp);
+  const toIdx = groups.indexOf(toGrp);
+  if (fromIdx < 0 || toIdx < 0) return;
+
+  groups.splice(fromIdx, 1);
+  groups.splice(toIdx, 0, fromGrp);
+
+  const ordered = [];
+  groups.forEach(g => ordered.push(...co.data.filter(r => r.item === g)));
+  ordered.forEach((r, i) => { r.id = i + 1; });
+  co.data = ordered;
+  co.nextId = ordered.length + 1;
+  if (currentCompany === coId) {
+    data = co.data;
+    nextId = co.nextId;
+    render();
+    if (window.innerWidth <= 768) mobRender();
+  }
+  saveToStorage();
+  saveToFirebase();
+  window._admDragUid = null;
+  renderAdmTab('companies');
+}
+
+function admDropGroup(event, coId) {
+  event.preventDefault();
+  window._admDragUid = null;
+}
+
+function admToggleLock(coId, grp) {
+  window._lockedGroups = window._lockedGroups || {};
+  if (!window._lockedGroups[coId]) window._lockedGroups[coId] = new Set();
+  const locked = window._lockedGroups[coId];
+  if (locked.has(grp)) locked.delete(grp);
+  else locked.add(grp);
+  renderAdmTab('companies');
+}
+
+function admLockAll(coId) {
+  const co = companies[coId];
+  if (!co) return;
+  window._lockedGroups = window._lockedGroups || {};
+  window._lockedGroups[coId] = new Set(co.data.map(r => r.item));
+  renderAdmTab('companies');
+}
+
+function admUnlockAll(coId) {
+  window._lockedGroups = window._lockedGroups || {};
+  window._lockedGroups[coId] = new Set();
+  renderAdmTab('companies');
+}
+
+function admMoveGroup(coId, groupName, direction) {
+  const locked = window._lockedGroups && window._lockedGroups[coId] || new Set();
+  if (locked.has(groupName)) { showToast('Group is locked'); return; }
+  const co = companies[coId];
+  if (!co) return;
+  const groups = [...new Set(co.data.map(r => r.item))];
+  const idx = groups.indexOf(groupName);
+  if (idx < 0) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= groups.length) return;
+  if (locked.has(groups[newIdx])) { showToast('Target position is locked'); return; }
+  [groups[idx], groups[newIdx]] = [groups[newIdx], groups[idx]];
+  const ordered = [];
+  groups.forEach(g => ordered.push(...co.data.filter(r => r.item === g)));
+  ordered.forEach((r, i) => { r.id = i + 1; });
+  co.data = ordered;
+  co.nextId = ordered.length + 1;
+  if (currentCompany === coId) {
+    data = co.data;
+    nextId = co.nextId;
+    render();
+    if (window.innerWidth <= 768) mobRender();
+  }
+  saveToStorage();
+  saveToFirebase();
+  renderAdmTab('companies');
+}
+
+function admMoveGroupById(uid, direction) {
+  const entry = window._rgMap && window._rgMap[uid];
+  if (!entry) return;
+  admMoveGroup(entry.coId, entry.grp, direction);
+}
+
+
 function admRenderCompanies() {
   const cos = admGetCompanies();
   return `<div class="adm-co-grid" style="grid-template-columns:repeat(2,1fr)">
@@ -6434,6 +6660,7 @@ function admRenderCompanies() {
         <div style="font-size:0.6rem;font-weight:700;letter-spacing:0.1em;color:var(--ink3);text-transform:uppercase;margin-bottom:8px;">Delete Group</div>
         ${admRenderDeleteGroups(co.id)}
       </div>
+      ${admRenderReorderGroups(co.id)}
     </div>`).join('')}
   </div>`;
 }
@@ -6937,19 +7164,35 @@ function today() {
 
 
 function admExport(coId) {
-  const coData = companies[coId]?.data || [];
-  if (!coData.length) { toast('No data for ' + coId); return; }
-  const rows = [['upc_code','description','item_cost','item_price','item_rebate']];
-  coData.forEach(r => rows.push([r.upc||'', r.desc||'', r.price||0, r.price||0, r.rebate||0]));
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download=coId+'-prices-export.csv';
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{URL.revokeObjectURL(url);document.body.removeChild(a);},200);
-  admLog('#1677ff', 'Exported '+coId+' CSV - '+coData.length+' items');
-  toast('✓ Exported '+coId+' ('+coData.length+' items)');
+  const coData = (companies[coId] && companies[coId].data) ? companies[coId].data : [];
+  if (!coData.length) { showToast('No data for ' + coId); return; }
+  const lines = [];
+  lines.push('upc_code,description,item_cost,Group_Base_Price,item_rebate,GROUP,CAT,OFFS,UnitType');
+  coData.forEach(r => {
+    const unitType = (r.cat === 'Carton') ? 'CARTON' : 'SINGLE';
+    const upc    = String(r.upc    || '').replace(/"/g,'""');
+    const desc   = String(r.desc   || '').replace(/"/g,'""');
+    const price  = (r.price  != null) ? Number(r.price).toFixed(2)  : '0.00';
+    const rebate = (r.rebate != null) ? Number(r.rebate).toFixed(2) : '0.00';
+    const group  = String(r.item   || '').replace(/"/g,'""');
+    const cat    = String(r.cat    || '').replace(/"/g,'""');
+    const offs   = String(r.offs   || '').replace(/"/g,'""');
+    lines.push('="' + upc + '","' + desc + '",0,"' + price + '","' + rebate + '","' + group + '","' + cat + '","' + offs + '","' + unitType + '"');
+  });
+  const csv = lines.join('\n');
+  const filename = coId + '-export-' + today() + '.csv';
+  try {
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(function() { URL.revokeObjectURL(url); if (a.parentNode) a.parentNode.removeChild(a); }, 2000);
+  } catch(err) {
+    window.location.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF' + csv);
+  }
+  admLog('#1677ff', 'Exported ' + coId + ' - ' + coData.length + ' items');
+  showToast('Exported ' + coId + ' (' + coData.length + ' items)');
 }
 
 function admReset(coId) {
