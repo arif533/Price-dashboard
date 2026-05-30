@@ -731,7 +731,7 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
       <button class="btn btn-bulk" style="width:100%;margin-bottom:8px;justify-content:center;display:flex" onclick="closeMobDrawer();openBulkPrice()">⟳ Bulk Price Change</button>
       <button class="btn btn-upload" style="width:100%;margin-bottom:8px;justify-content:center;display:flex" onclick="closeMobDrawer();document.getElementById('fileUpload').click()">↑ Upload Sheet</button>
       <button class="btn btn-danger" style="width:100%;margin-bottom:8px;justify-content:center;display:flex" onclick="closeMobDrawer();confirmResetPrices()">✕ Reset Prices</button>
-      <button class="btn btn-ghost" style="width:100%;justify-content:center;display:flex" onclick="openExportModal()">↓ Export CSV</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;display:flex" onclick="closeMobDrawer();setTimeout(openExportModal,200)">↓ Export CSV</button>
     </div>
   </div>
 </div>
@@ -745,6 +745,7 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
   </div>
   <div class="mob-header-actions">
     <div class="mob-icon-btn" onclick="toggleMobSearch()" id="mob-search-btn" title="Search">⌕</div>
+    <div class="mob-icon-btn" onclick="openExportModal()" title="Export CSV" style="font-size:0.9rem;">↓</div>
     <div class="mob-icon-btn" onclick="openMobDrawer()" title="Menu">☰</div>
   </div>
 </div>
@@ -862,7 +863,7 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
     <div class="form-grid">
       <div class="form-row">
         <label>Item Price ($)</label>
-        <input type="number" id="f-price" placeholder="0.00" step="0.01">
+        <input type="number" id="f-price" placeholder="0.00" step="0.01" oninput="updateCascadeHint()">
       </div>
       <div class="form-row">
         <label>Item Rebate ($)</label>
@@ -873,6 +874,28 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
       <label>OFF's (promo discount, e.g. $0.50, $1)</label>
       <input id="f-offs" placeholder="e.g. $0.50 or leave blank">
     </div>
+    <!-- Cascade Options -->
+    <div id="cascadeOptions" style="display:none;padding:12px 16px;background:var(--card2);border-radius:12px;margin:8px 0;">
+      <div style="font-size:0.65rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;">Update which items?</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="display:flex;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
+          <input type="checkbox" id="casc-single" checked onchange="updateCascadeHint()" style="width:16px;height:16px;accent-color:var(--accent);">
+          <span>&#127463; Single Pack</span>
+          <span id="casc-single-price" style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:0.75rem;color:var(--ink3);"></span>
+        </label>
+        <label id="casc-ctn-row" style="display:none;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
+          <input type="checkbox" id="casc-ctn" checked onchange="updateCascadeHint()" style="width:16px;height:16px;accent-color:var(--green);">
+          <span>&#128230; Carton (×<span id="casc-ctn-mult">10</span>)</span>
+          <span id="casc-ctn-price" style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:0.75rem;color:var(--green);"></span>
+        </label>
+        <label id="casc-roll-row" style="display:none;align-items:center;gap:8px;font-size:0.82rem;cursor:pointer;">
+          <input type="checkbox" id="casc-roll" checked onchange="updateCascadeHint()" style="width:16px;height:16px;accent-color:var(--gold);">
+          <span>&#128099; 5-Can / Roll (×5)</span>
+          <span id="casc-roll-price" style="margin-left:auto;font-family:JetBrains Mono,monospace;font-size:0.75rem;color:var(--gold);"></span>
+        </label>
+      </div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
       <button class="btn btn-accent" onclick="saveItem()">Save Item</button>
@@ -959,7 +982,26 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
       </table>
     </div>
 
-    <div class="modal-footer">
+     <!-- Bulk Cascade Options -->
+    <div id="bulkCascadeOptions" style="display:none;padding:12px 16px;background:var(--card2);border-radius:12px;margin:8px 16px;">
+      <div style="font-size:0.62rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;">Apply changes to:</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;background:var(--surface);padding:7px 12px;border-radius:10px;border:1.5px solid var(--accent);flex:1;min-width:90px;">
+          <input type="checkbox" id="bulk-casc-single" checked style="width:15px;height:15px;accent-color:var(--accent);">
+          <span style="font-weight:600;">&#128230; Singles</span>
+        </label>
+        <label id="bulk-casc-ctn-row" style="display:none;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;background:var(--surface);padding:7px 12px;border-radius:10px;border:1.5px solid var(--green);flex:1;min-width:90px;">
+          <input type="checkbox" id="bulk-casc-ctn" checked style="width:15px;height:15px;accent-color:var(--green);">
+          <span style="font-weight:600;color:var(--green);">&#128230; Cartons</span>
+        </label>
+        <label id="bulk-casc-roll-row" style="display:none;align-items:center;gap:6px;font-size:0.82rem;cursor:pointer;background:var(--surface);padding:7px 12px;border-radius:10px;border:1.5px solid var(--gold);flex:1;min-width:90px;">
+          <input type="checkbox" id="bulk-casc-roll" checked style="width:15px;height:15px;accent-color:var(--gold);">
+          <span style="font-weight:600;color:var(--gold);">&#128099; 5-Can/Roll</span>
+        </label>
+      </div>
+    </div>
+
+   <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
       <button class="btn btn-accent" id="bp-apply-btn" onclick="applyBulkPrice()" disabled>Apply to All Variants</button>
     </div>
@@ -1049,7 +1091,7 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
           <div id="fbStatusDot" title="Checking cloud..." style="width:8px;height:8px;border-radius:50%;background:#1677ff;transition:background 0.4s;flex-shrink:0;"></div>
           <span id="fbStatusText" style="font-size:0.55rem;color:var(--ink3);letter-spacing:0.05em;">Cloud</span>
         </div>
-        <button class="btn btn-ghost" onclick="openExportModal()">↓ Export CSV</button>
+        <button class="btn btn-ghost" onclick="closeMobDrawer();setTimeout(openExportModal,200)">↓ Export CSV</button>
         <button class="btn btn-admin" onclick="openAdminPanel()" title="Admin Panel">⚙ Admin</button>
         <button class="btn btn-bulk" onclick="openBulkPrice()">⟳ Bulk Price Change</button>
         <button class="btn btn-upload" onclick="document.getElementById('fileUpload').click()">↑ Upload Sheet</button>
@@ -1223,7 +1265,7 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
 
     <div class="modal-footer" style="flex-shrink:0;">
       <button class="btn btn-ghost" onclick="closeExportModal()">Cancel</button>
-      <button class="btn btn-accent" id="export-do-btn" onclick="doExportCSV()">↓ Export Selected</button>
+      <a class="btn btn-accent" id="export-do-btn" href="#" download="export.csv" onclick="return prepareExport(this,event)" style="text-decoration:none;">↓ Export Selected</a>
     </div>
   </div>
 </div>
@@ -1832,23 +1874,40 @@ function updateCascadeHint() {
   const item = document.getElementById('f-item')?.value.trim();
   const cat  = document.getElementById('f-cat')?.value || '';
   const hint = document.getElementById('cascadeHint');
-  const txt  = document.getElementById('cascadeHintText');
-  if (!hint || !item || !editId) return;
-  if (isCarton(item) || is5Can(item)) { hint.style.display='none'; return; }
-  const isCigg    = /CIGG|cigarette/i.test(cat);
+  const opts = document.getElementById('cascadeOptions');
+  var ctnRow  = document.getElementById('casc-ctn-row');
+  var rollRow = document.getElementById('casc-roll-row');
+  if (ctnRow)  ctnRow.style.display  = 'none';
+  if (rollRow) rollRow.style.display = 'none';
+  if (opts)    opts.style.display    = 'none';
+  if (hint)    hint.style.display    = 'none';
+  if (!item || !editId) return;
+  if (isCarton(item) || is5Can(item)) return;
+  const isCigg     = /CIGG|cigarette/i.test(cat);
   const cartonMult = isCigg ? 10 : 5;
   const partnerCtn = findCartonPartner(item);
   const partner5   = find5CanPartner(item);
-  const parts = [];
-  if (partnerCtn) parts.push('carton ×' + cartonMult);
-  if (partner5)   parts.push('5-can ×5');
-  if (parts.length) {
-    txt.textContent = '↺ Will auto-update ' + parts.join(' + ') + ' partner';
-    hint.style.display = 'block';
-  } else {
-    hint.style.display = 'none';
+  var curPrice = parseFloat(document.getElementById('f-price')?.value) || 0;
+  var singleEl = document.getElementById('casc-single-price');
+  if (singleEl) singleEl.textContent = curPrice > 0 ? '$' + curPrice.toFixed(2) : '';
+  var hasPartner = false;
+  if (partnerCtn) {
+    hasPartner = true;
+    if (ctnRow) ctnRow.style.display = 'flex';
+    var multEl = document.getElementById('casc-ctn-mult');
+    if (multEl) multEl.textContent = cartonMult;
+    var ctnEl = document.getElementById('casc-ctn-price');
+    if (ctnEl) ctnEl.textContent = curPrice > 0 ? '-> $' + (curPrice * cartonMult).toFixed(2) : '';
   }
+  if (partner5) {
+    hasPartner = true;
+    if (rollRow) rollRow.style.display = 'flex';
+    var rollEl = document.getElementById('casc-roll-price');
+    if (rollEl) rollEl.textContent = curPrice > 0 ? '-> $' + (curPrice * 5).toFixed(2) : '';
+  }
+  if (hasPartner && opts) opts.style.display = 'block';
 }
+
 
 function saveItem() {
   const item = document.getElementById('f-item')?.value.trim();
@@ -1906,7 +1965,10 @@ function saveItem() {
 
       let cascaded = 0;
 
-      if (partnerCtn) {
+      const cascCtnChecked  = !document.getElementById('casc-ctn')  || document.getElementById('casc-ctn').checked;
+      const cascRollChecked = !document.getElementById('casc-roll') || document.getElementById('casc-roll').checked;
+
+      if (partnerCtn && cascCtnChecked) {
         const sameName = (partnerCtn === item); // same group name, diff cat
         data = data.map(r => {
           if (r.item !== partnerCtn) return r;
@@ -1921,7 +1983,7 @@ function saveItem() {
         });
       }
 
-      if (partner5) {
+      if (partner5 && cascRollChecked) {
         data = data.map(r => {
           if (r.item !== partner5) return r;
           const newP5Price  = priceChanged  ? +(price  * fiveCanMult).toFixed(2) : r.price;
@@ -2048,43 +2110,127 @@ function updateExportCount() {
   });
 }
 
-function doExportCSV() {
-  const selectedGroups = new Set([...document.querySelectorAll('.export-group-cb:checked')].map(cb => cb.value));
-  if (!selectedGroups.size) { showToast('No groups selected'); return; }
+function doExportCSV() { prepareExport(document.getElementById('export-do-btn')); }
 
-  // Use FULL company data — not the filtered `data` variable
+function prepareExport(linkEl, evt) {
+  // Prevent default link behavior
+  if (evt) evt.preventDefault();
+  else if (typeof event !== 'undefined' && event) event.preventDefault();
+
+  const selectedGroups = new Set(
+    [...document.querySelectorAll('.export-group-cb:checked')].map(cb => cb.value)
+  );
+  if (!selectedGroups.size) { showToast('Select at least one group'); return false; }
+
   const fullData = (companies[currentCompany] && companies[currentCompany].data) ? companies[currentCompany].data : [];
-  const exportData = fullData.filter(r => selectedGroups.has(r.item));
-  if (!exportData.length) { showToast('No items found for selected groups'); return; }
+  const rows = fullData.filter(function(r) { return selectedGroups.has(r.item); });
+  if (!rows.length) { showToast('No items found for selected groups'); return false; }
 
-  // Build CSV rows
-  const lines = [];
-  // Header row
-  lines.push('upc_code,description,item_cost,Group_Base_Price,item_rebate,GROUP,CAT,OFFS,UnitType');
-
-  exportData.forEach(r => {
-    const unitType = (r.cat === 'Carton') ? 'CARTON' : 'SINGLE';
-    const upc = String(r.upc || '').replace(/"/g, '""');
-    const desc = String(r.desc || '').replace(/"/g, '""');
-    const price = (r.price != null) ? Number(r.price).toFixed(2) : '0.00';
-    const rebate = (r.rebate != null) ? Number(r.rebate).toFixed(2) : '0.00';
-    const group = String(r.item || '').replace(/"/g, '""');
-    const cat = String(r.cat || '').replace(/"/g, '""');
-    const offs = String(r.offs || '').replace(/"/g, '""');
-    // UPC: use = formula to preserve leading zeros in Excel
-    lines.push('="' + upc + '","' + desc + '",0,"' + price + '","' + rebate + '","' + group + '","' + cat + '","' + offs + '","' + unitType + '"');
+  // Build CSV
+  const lines = ['upc_code,description,item_cost,Group_Base_Price,item_rebate,GROUP,CAT,OFFS,UnitType'];
+  rows.forEach(function(r) {
+    const u = String(r.upc    || '').replace(/"/g, '""');
+    const d = String(r.desc   || '').replace(/"/g, '""');
+    const p = (r.price  != null) ? (+r.price).toFixed(2)  : '0.00';
+    const b = (r.rebate != null) ? (+r.rebate).toFixed(2) : '0.00';
+    const g = String(r.item   || '').replace(/"/g, '""');
+    const c = String(r.cat    || '').replace(/"/g, '""');
+    const o = String(r.offs   || '').replace(/"/g, '""');
+    const t = (r.cat === 'Carton') ? 'CARTON' : 'SINGLE';
+    lines.push('="' + u + '","' + d + '",0,"' + p + '","' + b + '","' + g + '","' + c + '","' + o + '","' + t + '"');
   });
 
-  const csv = lines.join('\n');
-  const filename = currentCompany + '-export-' + today() + '.csv';
+  const csv  = '\uFEFF' + lines.join('\n');
+  const name = currentCompany + '-' + today() + '.csv';
 
-  // Download — try multiple methods for mobile compatibility
-  // Use shared downloadCSV which has 3-method mobile fallback
-  downloadCSV(csv, filename);
+  // Create blob and trigger download
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
 
-  document.getElementById('exportModal').classList.remove('open');
-  showToast('Exported ' + exportData.length + ' items (' + selectedGroups.size + ' groups)');
+  // Create a fresh invisible anchor and click it
+  const a = document.createElement('a');
+  a.href     = url;
+  a.download = name;
+  a.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(function() {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 5000);
+
+  // Update button text and close modal
+  if (linkEl) {
+    linkEl.textContent = '✓ ' + rows.length + ' items';
+    setTimeout(function() { linkEl.textContent = '↓ Export Selected'; }, 3000);
+  }
+  setTimeout(function() {
+    document.getElementById('exportModal').classList.remove('open');
+  }, 500);
+
+  showToast('Exporting ' + rows.length + ' items...');
+  return false;
 }
+
+
+function doExportCSV() { prepareExport(document.getElementById('export-do-btn')); }
+
+function prepareExport(linkEl) {
+  const selectedGroups = new Set(
+    [...document.querySelectorAll('.export-group-cb:checked')].map(cb => cb.value)
+  );
+  if (!selectedGroups.size) { showToast('Select at least one group'); return false; }
+
+  const fullData = companies[currentCompany] && companies[currentCompany].data || [];
+  const rows = fullData.filter(r => selectedGroups.has(r.item));
+  if (!rows.length) { showToast('No items found'); return false; }
+
+  // Build CSV
+  const lines = ['upc_code,description,item_cost,Group_Base_Price,item_rebate,GROUP,CAT,OFFS,UnitType'];
+  rows.forEach(function(r) {
+    const u = (r.upc    || '').replace(/"/g,'""');
+    const d = (r.desc   || '').replace(/"/g,'""');
+    const p = r.price  != null ? (+r.price).toFixed(2)  : '0.00';
+    const b = r.rebate != null ? (+r.rebate).toFixed(2) : '0.00';
+    const g = (r.item   || '').replace(/"/g,'""');
+    const c = (r.cat    || '').replace(/"/g,'""');
+    const o = (r.offs   || '').replace(/"/g,'""');
+    const t = r.cat === 'Carton' ? 'CARTON' : 'SINGLE';
+    lines.push('="'+u+'","'+d+'",0,"'+p+'","'+b+'","'+g+'","'+c+'","'+o+'","'+t+'"');
+  });
+
+  const csv  = '\uFEFF' + lines.join('\n');
+  const name = currentCompany + '-' + today() + '.csv';
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+
+  // Set the link href and filename — browser handles the actual download natively
+  if (linkEl && linkEl.tagName === 'A') {
+    linkEl.href     = url;
+    linkEl.download = name;
+    linkEl.textContent = '✓ ' + rows.length + ' items ready';
+    setTimeout(function() {
+      linkEl.textContent = '↓ Export Selected';
+      URL.revokeObjectURL(url);
+      document.getElementById('exportModal').classList.remove('open');
+    }, 3000);
+    return true; // let the browser follow the link
+  }
+
+  // Fallback for non-anchor call
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  a.style.cssText = 'position:fixed;top:-999px';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+  document.getElementById('exportModal').classList.remove('open');
+  showToast('Exported ' + rows.length + ' items');
+  return false;
+}
+
 
 function closeExportModal() {
   document.getElementById('exportModal').classList.remove('open');
@@ -2361,6 +2507,17 @@ function onGroupChange() {
     (partnerSgl ? ' + ' + partnerSgl + ' (single)'        : '');
   document.getElementById('bp-count').textContent = totalVariants + ' variants';
 
+  // Show/hide bulk cascade options based on available partners
+  var bulkOpts   = document.getElementById('bulkCascadeOptions');
+  var bulkCtnRow = document.getElementById('bulk-casc-ctn-row');
+  var bulkRollRow= document.getElementById('bulk-casc-roll-row');
+  if (bulkOpts) {
+    var hasAnyPartner = (partnerCtn && partnerCtnItems.length > 0) || (partner5 && partner5Items.length > 0);
+    bulkOpts.style.display = hasAnyPartner ? 'block' : 'none';
+    if (bulkCtnRow)  bulkCtnRow.style.display  = (partnerCtn && partnerCtnItems.length > 0)  ? 'flex' : 'none';
+    if (bulkRollRow) bulkRollRow.style.display = (partner5   && partner5Items.length   > 0)  ? 'flex' : 'none';
+  }
+
   renderBulkPreview(items, basePrice, null, baseRebate, null, partner5Items, partnerCtnItems, partnerSglItems);
 }
 
@@ -2490,10 +2647,17 @@ function applyBulkPrice() {
   const isOtbcGrp   = singleCat.toUpperCase().includes('OTBC') || singleCat.toLowerCase().includes('other tobacco');
   const cartonMult  = isOtbcGrp ? 5 : 10;
 
-  const affectedGroups = [{ name: group, mult: selfMult }];
-  if (partner5)   affectedGroups.push({ name: partner5,   mult: 5         });
-  if (partnerCtn) affectedGroups.push({ name: partnerCtn, mult: cartonMult});
-  if (partnerSgl) affectedGroups.push({ name: partnerSgl, mult: 1         });
+  // Read checkboxes
+  const applySingle = !document.getElementById('bulk-casc-single') || document.getElementById('bulk-casc-single').checked;
+  const applyCtn    = !document.getElementById('bulk-casc-ctn')    || document.getElementById('bulk-casc-ctn').checked;
+  const applyRoll   = !document.getElementById('bulk-casc-roll')   || document.getElementById('bulk-casc-roll').checked;
+
+  const affectedGroups = [];
+  if (applySingle) affectedGroups.push({ name: group,      mult: selfMult  });
+  if (partner5   && applyRoll) affectedGroups.push({ name: partner5,   mult: 5          });
+  if (partnerCtn && applyCtn)  affectedGroups.push({ name: partnerCtn, mult: cartonMult });
+  if (partnerSgl) affectedGroups.push({ name: partnerSgl, mult: 1          });
+  if (!affectedGroups.length) { showToast('Select at least one item type'); return; }
 
   let changed = 0;
   data = data.map(r => {
@@ -3452,20 +3616,20 @@ companies.RJR.data = [
   {id:134,item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL $0.50 OFF 100S BOX',upc:'026100107838',cat:'CIGG',price:8.94,rebate:0.15,offs:'$0.50'},
   {id:135,item:'NEWPORT NON-MENTHOL',desc:'NEWPORT NON-MENTHOL $1 OFF 100S BOX',upc:'026100107777',cat:'CIGG',price:8.44,rebate:0.15,offs:'$1'},
   // NAS
-  {id:136,item:'NAS RED/GOLD',desc:'NATURAL AMERICAN SPIRIT SMOOTH GOLD CIGARETTES SGL - PK',upc:'047995200619',cat:'CIGG',price:9.74,rebate:0,offs:''},
-  {id:137,item:'NAS RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED KINGS SGL - PK',upc:'047995200701',cat:'CIGG',price:9.74,rebate:0,offs:''},
-  {id:138,item:'NAS RED/GOLD',desc:'NATURAL AMERICAN SPIRIT $1 OFF FB RED SGL - PK',upc:'047995200732',cat:'CIGG',price:8.74,rebate:0,offs:'$1'},
-  {id:139,item:'NAS RED/GOLD',desc:'NATURAL AMERICAN SPIRIT $1 OFF SMOOTH GOLD SGL - PK',upc:'047995200640',cat:'CIGG',price:8.74,rebate:0,offs:'$1'},
-  {id:140,item:'NAS ORGANIC',desc:'NATURAL AMERICAN SPIRIT SKY SMOOTH KINGS SGL - PK',upc:'047995200404',cat:'CIGG',price:11.45,rebate:0,offs:''},
-  {id:141,item:'NAS ORGANIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL MELLOW GREEN KINGS SGL - PK',upc:'047995855055',cat:'CIGG',price:11.45,rebate:0,offs:''},
-  {id:142,item:'NAS ORGANIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC TURQUOISE SGL - PK',upc:'047995855246',cat:'CIGG',price:11.45,rebate:0,offs:''},
-  {id:143,item:'NAS ORGANIC',desc:'NATURAL AMERICAN SPIRIT GOLD SGL - PK',upc:'047995855253',cat:'CIGG',price:11.45,rebate:0,offs:''},
-  {id:144,item:'NAS ORGANIC',desc:'NAS $1 OFF SKY 85S SGL - PK',upc:'047995200435',cat:'CIGG',price:10.45,rebate:0,offs:'$1'},
-  {id:145,item:'NAS ORGANIC',desc:'NAS $1 OFF MELLOW MENTHOL GREEN SGL - PK',upc:'047995200527',cat:'CIGG',price:10.45,rebate:0,offs:'$1'},
-  {id:146,item:'NAS NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT NON-FILTER BROWN KINGS SGL - PK',upc:'047995200022',cat:'CIGG',price:10.87,rebate:0,offs:''},
-  {id:147,item:'NAS NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT BLUE CIGARETTES SGL - PK',upc:'047995855086',cat:'CIGG',price:10.87,rebate:0,offs:''},
-  {id:148,item:'NAS NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT YELLOW CIGARETTES SGL - PK',upc:'047995855093',cat:'CIGG',price:10.87,rebate:0,offs:''},
-  {id:149,item:'NAS NON-ORGANIC',desc:'NAS $1 OFF BLUE CIGARETTES SGL - PK',upc:'047995200466',cat:'CIGG',price:9.87,rebate:0,offs:'$1'},
+  {id:136,item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT SMOOTH GOLD CIGARETTES SGL - PK',upc:'047995200619',cat:'CIGG',price:9.74,rebate:0,offs:''},
+  {id:137,item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED KINGS SGL - PK',upc:'047995200701',cat:'CIGG',price:9.74,rebate:0,offs:''},
+  {id:138,item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT $1 OFF FB RED SGL - PK',upc:'047995200732',cat:'CIGG',price:8.74,rebate:0,offs:'$1'},
+  {id:139,item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT $1 OFF SMOOTH GOLD SGL - PK',upc:'047995200640',cat:'CIGG',price:8.74,rebate:0,offs:'$1'},
+  {id:140,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT SKY SMOOTH KINGS SGL - PK',upc:'047995200404',cat:'CIGG',price:11.45,rebate:0,offs:''},
+  {id:141,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL MELLOW GREEN KINGS SGL - PK',upc:'047995855055',cat:'CIGG',price:11.45,rebate:0,offs:''},
+  {id:142,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC TURQUOISE SGL - PK',upc:'047995855246',cat:'CIGG',price:11.45,rebate:0,offs:''},
+  {id:143,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT GOLD SGL - PK',upc:'047995855253',cat:'CIGG',price:11.45,rebate:0,offs:''},
+  {id:144,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NAS $1 OFF SKY 85S SGL - PK',upc:'047995200435',cat:'CIGG',price:10.45,rebate:0,offs:'$1'},
+  {id:145,item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NAS $1 OFF MELLOW MENTHOL GREEN SGL - PK',upc:'047995200527',cat:'CIGG',price:10.45,rebate:0,offs:'$1'},
+  {id:146,item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT NON-FILTER BROWN KINGS SGL - PK',upc:'047995200022',cat:'CIGG',price:10.87,rebate:0,offs:''},
+  {id:147,item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT BLUE CIGARETTES SGL - PK',upc:'047995855086',cat:'CIGG',price:10.87,rebate:0,offs:''},
+  {id:148,item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT YELLOW CIGARETTES SGL - PK',upc:'047995855093',cat:'CIGG',price:10.87,rebate:0,offs:''},
+  {id:149,item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NAS $1 OFF BLUE CIGARETTES SGL - PK',upc:'047995200466',cat:'CIGG',price:9.87,rebate:0,offs:'$1'},
   // LUCKY STRIKE
   {id:150,item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD KINGS FILTER CIGARETTES SGL - PK',upc:'043300108991',cat:'CIGG',price:6.05,rebate:0.95,offs:''},
   {id:151,item:'LUCKY STRIKE',desc:'LUCKY STRIKE GOLD 100S SGL - PK',upc:'043300109080',cat:'CIGG',price:6.05,rebate:0.95,offs:''},
@@ -3558,8 +3722,8 @@ companies.RJR.data = [
   {id:229,upc:'026100016635',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 85 BOX $0.25 OFF',price:107.2,rebate:4.5,offs:'2.5',cat:'Carton'},
   {id:230,upc:'026100805734',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 100 BOX',price:109.7,rebate:4.5,offs:'',cat:'Carton'},
   {id:231,upc:'026100805758',item:'NEWPORT MENTHOL',desc:'NEWPORT MENTHOL 85 BOX',price:109.7,rebate:4.5,offs:'',cat:'Carton'},
-  {id:232,upc:'026100805772',item:'NEWPORT SOFT PACK',desc:'NEWPORT MENTHOL 100 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
-  {id:233,upc:'026100805789',item:'NEWPORT SOFT PACK',desc:'NEWPORT MENTHOL 85 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
+  {id:232,upc:'026100805772',item:'NEWPORT MENTHOL SOFT',desc:'NEWPORT MENTHOL 100 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
+  {id:233,upc:'026100805789',item:'NEWPORT MENTHOL SOFT',desc:'NEWPORT MENTHOL 85 SOFT PACK',price:102.7,rebate:6.5,offs:'',cat:'Carton'},
   {id:234,upc:'026100016819',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST 85 BOX $1.00 OFF',price:104.2,rebate:0.0,offs:'10.0',cat:'Carton'},
   {id:235,upc:'026100016727',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST GOLD 85 BOX $1.00 OFF',price:104.2,rebate:0.0,offs:'10.0',cat:'Carton'},
   {id:236,upc:'026100016697',item:'NEWPORT SUPPORT',desc:'NEWPORT BOOST 85 BOX $0.50 OFF',price:109.2,rebate:0.0,offs:'5.0',cat:'Carton'},
@@ -3688,26 +3852,26 @@ companies.RJR.data = [
   {id:359,upc:'027200731459',item:'PALL MALL',desc:'PALL MALL ORANGE 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
   {id:360,upc:'027200018673',item:'PALL MALL',desc:'PALL MALL RED 100 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
   {id:361,upc:'027200018512',item:'PALL MALL',desc:'PALL MALL RED 85 BOX',price:89.1,rebate:11.5,offs:'',cat:'Carton'},
-  {id:362,upc:'047995200473',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:363,upc:'047995200503',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:364,upc:'047995200015',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT NON-FILTER BROWN KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:365,upc:'047995200305',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE HUNTER KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:366,upc:'047995855178',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH ROBUST BLACK KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:367,upc:'047995855185',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:368,upc:'047995855192',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:369,upc:'047995855314',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE CELADON KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:370,upc:'047995855338',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT MELLOW ORANGE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:371,upc:'047995856021',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH GRAY KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:372,upc:'047995856045',item:'NATURAL AMERICAN SPIRIT NON-ORGONIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED DARK BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
-  {id:373,upc:'047995200442',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK SKY KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:374,upc:'047995200534',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MENTHOL MELLOW GREEN CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:375,upc:'047995200565',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1.00 OFF/PK TURQUOISE KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:376,upc:'047995200596',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW GOLD KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
-  {id:377,upc:'047995200411',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC SKY KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
-  {id:378,upc:'047995855154',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL MELLOW GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
-  {id:379,upc:'047995855321',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL DARK GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
-  {id:380,upc:'047995855345',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC TURQUOISE KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
-  {id:381,upc:'047995855352',item:'NATURAL AMERICAN SPIRIT ORGONIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC GOLD KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:362,upc:'047995200473',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:363,upc:'047995200503',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:105.2,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:364,upc:'047995200015',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT NON-FILTER BROWN KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:365,upc:'047995200305',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE HUNTER KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:366,upc:'047995855178',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH ROBUST BLACK KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:367,upc:'047995855185',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:368,upc:'047995855192',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT MELLOW YELLOW KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:369,upc:'047995855314',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT BALANCED TASTE CELADON KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:370,upc:'047995855338',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT MELLOW ORANGE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:371,upc:'047995856021',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT PERIQUE RICH GRAY KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:372,upc:'047995856045',item:'NATURAL AMERICAN SPIRIT NON-ORGANIC',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED DARK BLUE KINGS CIGARETTES BOX - CTN',price:115.2,rebate:0.0,offs:'',cat:'Carton'},
+  {id:373,upc:'047995200442',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK SKY KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:374,upc:'047995200534',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MENTHOL MELLOW GREEN CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:375,upc:'047995200565',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1.00 OFF/PK TURQUOISE KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:376,upc:'047995200596',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT $1 OFF/PK MELLOW GOLD KINGS CIGARETTES BOX - CTN',price:111.0,rebate:0.0,offs:'10.0',cat:'Carton'},
+  {id:377,upc:'047995200411',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC SKY KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:378,upc:'047995855154',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL MELLOW GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:379,upc:'047995855321',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT MENTHOL DARK GREEN KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:380,upc:'047995855345',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC TURQUOISE KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
+  {id:381,upc:'047995855352',item:'NATURAL AMERICAN SPIRIT ORGANIC',desc:'NATURAL AMERICAN SPIRIT ORGANIC GOLD KINGS CIGARETTES BOX - CTN',price:121.0,rebate:0.0,offs:'',cat:'Carton'},
   {id:382,upc:'047995200657',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT SMOOTH GOLD $1.00 OFF',price:93.9,rebate:0.0,offs:'10.0',cat:'Carton'},
   {id:383,upc:'047995200749',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED $1.00 OFF',price:93.9,rebate:0.0,offs:'10.0',cat:'Carton'},
   {id:384,upc:'047995200718',item:'NATURAL AMERICAN SPIRIT RED/GOLD',desc:'NATURAL AMERICAN SPIRIT FULL-BODIED RED',price:103.9,rebate:0.0,offs:'',cat:'Carton'},
@@ -3853,10 +4017,10 @@ companies.ALTRIA.data = [
   {id:134,upc:'028200178428',item:'MAINLINE MENTHOL',desc:'MARLBORO $.75 OFF MENTHOL GOLD CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:135,upc:'028200178398',item:'MAINLINE MENTHOL',desc:'MARLBORO $.75 OFF MENTHOL KINGS CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:136,upc:'028200580412',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.5 OFF MENTHOL BLUE CIGARETTES SGL - ctn',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
-  {id:137,upc:'028200587015',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF 83 CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
+  {id:137,upc:'028200587015',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF 83 CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
   {id:138,upc:'028200584618',item:'BLACK NON-MENTHOL',desc:'MARLBORO $0.50 OFF BLACK SPECIAL BLEND 100S CIGARETTES BOX - CTN',price:65.5,rebate:25.9,offs:'0.5',cat:'Carton'},
   {id:139,upc:'028200584519',item:'BLACK NON-MENTHOL',desc:'MARLBORO $0.50 OFF BLACK SPECIAL BLEND CIGARETTES BOX - CTN',price:65.5,rebate:25.9,offs:'0.5',cat:'Carton'},
-  {id:140,upc:'028200178213',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF BLEND NO.27 CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
+  {id:140,upc:'028200178213',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF BLEND NO.27 CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
   {id:141,upc:'028200176967',item:'BLACK NON-MENTHOL',desc:'MARLBORO $0.50 OFF EDGE 100S CIGARETTES SGL - PK',price:6.55,rebate:2.59,offs:'0.5',cat:'CIGG'},
   {id:142,upc:'028200603616',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF MENTHOL 100S CIGARETTES BOX - CTN',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
   {id:143,upc:'028200178411',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF MENTHOL 100S CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
@@ -3879,17 +4043,17 @@ companies.ALTRIA.data = [
   {id:160,upc:'028200178312',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF MENTHOL SMOOTH CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
   {id:161,upc:'028200178732',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF MENTHOL SPANISH 100S CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
   {id:162,upc:'028200586810',item:'BLACK MENTHOL',desc:'MARLBORO $0.50 OFF NXT LS CIGARETTES BOX - CTN',price:84.7,rebate:6.7,offs:'0.5',cat:'Carton'},
-  {id:163,upc:'028200599216',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL 100S CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
-  {id:164,upc:'028200178244',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL 100S CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
-  {id:165,upc:'028200178237',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
+  {id:163,upc:'028200599216',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL 100S CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
+  {id:164,upc:'028200178244',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL 100S CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
+  {id:165,upc:'028200178237',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF RED LABEL CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
   {id:166,upc:'028200178329',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF SMOOTH 100S CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
   {id:167,upc:'028200174826',item:'SPECIAL SELECT',desc:'MARLBORO $0.50 OFF SPECIAL BLEND 100S CIGARETTES SGL - PK',price:9.43,rebate:0.3,offs:'0.5',cat:'CIGG'},
   {id:168,upc:'028200174819',item:'SPECIAL SELECT',desc:'MARLBORO $0.50 OFF SPECIAL BLEND GOLD CIGARETTES SGL - PK',price:9.43,rebate:0.3,offs:'0.5',cat:'CIGG'},
   {id:169,upc:'028200174895',item:'SPECIAL SELECT',desc:'MARLBORO $0.50 OFF SPECIAL BLEND RED 100S CIGARETTES SGL - PK',price:9.43,rebate:0.3,offs:'0.5',cat:'CIGG'},
   {id:170,upc:'028200174888',item:'SPECIAL SELECT',desc:'MARLBORO $0.50 OFF SPECIAL BLEND SHORTS CIGARETTES SGL - PK',price:9.43,rebate:0.3,offs:'0.5',cat:'CIGG'},
-  {id:171,upc:'028200599018',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK 100S BLEND 27 CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
-  {id:172,upc:'028200178220',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK 100S BLEND 27 CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
-  {id:173,upc:'028200603715',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK EIGHTY-THREES CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
+  {id:171,upc:'028200599018',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK 100S BLEND 27 CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
+  {id:172,upc:'028200178220',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK 100S BLEND 27 CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
+  {id:173,upc:'028200603715',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK EIGHTY-THREES CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
   {id:174,upc:'028200610010',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK MENTHOL BOLD ICE KINGS CIGARETTES BOX - CTN',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
   {id:175,upc:'028200179418',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK MENTHOL BOLD ICE KINGS CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
   {id:176,upc:'028200608314',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF/1 PK MENTHOL ICE KINGS CIGARETTES BOX - CTN',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
@@ -3900,117 +4064,117 @@ companies.ALTRIA.data = [
   {id:181,upc:'028200176998',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.50 OFF/PK RICH BLUE MENTHOL CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
   {id:182,upc:'028200174796',item:'BLACK MENTHOL',desc:'MARLBORO $0.50OFF MENTHOL BLACK SPECIAL BLENDELTA 100S CIGARETTES SGL - PK',price:8.47,rebate:0.67,offs:'0.5',cat:'CIGG'},
   {id:183,upc:'028200174789',item:'BLACK MENTHOL',desc:'MARLBORO $0.50OFF/PK MENTHOL BLACK SPECIAL BLEND CIGARETTES SGL - PK',price:8.47,rebate:0.67,offs:'0.5',cat:'CIGG'},
-  {id:184,upc:'028200600318',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF BLEND 27 100S CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
-  {id:185,upc:'028200178367',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF BLEND 27 CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
+  {id:184,upc:'028200600318',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF BLEND 27 100S CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
+  {id:185,upc:'028200178367',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF BLEND 27 CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
   {id:186,upc:'028200600714',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75 OFF MENTHOL 100S CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:187,upc:'028200600615',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75 OFF MENTHOL CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:188,upc:'028200600813',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75 OFF MENTHOL GOLD CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
-  {id:189,upc:'028200178343',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF RED LABEL 100S CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
-  {id:190,upc:'028200178336',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF RED LABEL CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
+  {id:189,upc:'028200178343',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF RED LABEL 100S CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
+  {id:190,upc:'028200178336',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF RED LABEL CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
   {id:191,upc:'028200178497',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75 OFF SMOOTH 100S CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:192,upc:'028200178480',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75 OFF SMOOTH CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
-  {id:193,upc:'028200178381',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF SOUTHERN CUT CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
+  {id:193,upc:'028200178381',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75 OFF SOUTHERN CUT CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
   {id:194,upc:'028200601117',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S BLUE CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:195,upc:'028200178459',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S MENTHOL BLUE CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:196,upc:'028200600912',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S MENTHOL GOLD CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:197,upc:'028200601513',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S MENTHOL SMOOTH CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
-  {id:198,upc:'028200600110',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S RED CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
+  {id:198,upc:'028200600110',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S RED CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
   {id:199,upc:'028200601919',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S SPAN GOLD CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:200,upc:'028200601711',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK 100S SPAN MENTHOL CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
-  {id:201,upc:'028200600219',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK EIGHTY-THREES CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
+  {id:201,upc:'028200600219',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK EIGHTY-THREES CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
   {id:202,upc:'028200178442',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK MENTHOL BLUE KINGS CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:203,upc:'028200601414',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK MENTHOL SMOOTH KINGS CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
-  {id:204,upc:'028200600516',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK SOUTH CUT KINGS CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
+  {id:204,upc:'028200600516',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $0.75OFF/1 PK SOUTH CUT KINGS CIGARETTES BOX - CTN',price:92.8,rebate:2.0,offs:'0.75',cat:'Carton'},
   {id:205,upc:'028200601810',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK SPAN GOLD KINGS CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
   {id:206,upc:'028200601612',item:'MAINLINE MENTHOL',desc:'MARLBORO $0.75OFF/1 PK SPAN MENTHOL KINGS CIGARETTES BOX - CTN',price:100.4,rebate:0.0,offs:'0.75',cat:'Carton'},
-  {id:207,upc:'028200583413',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF / 1 PK 100S BLEND 27 CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:207,upc:'028200583413',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF / 1 PK 100S BLEND 27 CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
   {id:208,upc:'028200594518',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK 100S MENTHOL RICH BLUE CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:209,upc:'028200577610',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK 100S SKYLINE CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:210,upc:'028200589910',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK 100S SPAN MENTHOL CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:211,upc:'028200594617',item:'BLACK NON-MENTHOL',desc:'MARLBORO $1 OFF / 1 PK EDGE KINGS CIGARETTES BOX - CTN',price:60.5,rebate:25.9,offs:'1.0',cat:'Carton'},
-  {id:212,upc:'028200573711',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF / 1 PK KINGS CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:212,upc:'028200573711',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF / 1 PK KINGS CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
   {id:213,upc:'028200605214',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK MENTHOL ICE KINGS CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:214,upc:'028200594211',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK SPAN MENTHOL GOLD KINGS CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:215,upc:'028200589811',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF / 1 PK SPAN MENTHOL KINGS CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
-  {id:216,upc:'028200174949',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF 83S CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:216,upc:'028200174949',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF 83S CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
   {id:217,upc:'028200196965',item:'BLACK NON-MENTHOL',desc:'MARLBORO $1 OFF EDGE KINGS CIGARETTES SGL - PK',price:6.05,rebate:2.59,offs:'1.0',cat:'CIGG'},
   {id:218,upc:'028200572219',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF MENTHOL 85S CIGARETTES SGL - PK',price:9.79,rebate:0.0,offs:'1.0',cat:'CIGG'},
   {id:219,upc:'028200176950',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF MENTHOL BLUE 100S CIGARETTES SGL - PK',price:9.79,rebate:0.0,offs:'1.0',cat:'CIGG'},
-  {id:220,upc:'028200173782',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF MENTHOL CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:220,upc:'028200173782',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF MENTHOL CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
   {id:221,upc:'028200594310',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF MENTHOL GOLD 100S CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:222,upc:'028200178916',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF MENTHOL ICE CIGARETTES SGL - PK',price:9.79,rebate:0.0,offs:'1.0',cat:'CIGG'},
-  {id:223,upc:'028200173461',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF RED LABEL MEDIUM CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:223,upc:'028200173461',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF RED LABEL MEDIUM CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
   {id:224,upc:'028200594419',item:'MAINLINE MENTHOL',desc:'MARLBORO $1 OFF RICH BLUE CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
-  {id:225,upc:'028200174970',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1 OFF/BOX SOUTHERN CUT CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
-  {id:226,upc:'028200572615',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $10 OFF BLEND CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:225,upc:'028200174970',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1 OFF/BOX SOUTHERN CUT CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:226,upc:'028200572615',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $10 OFF BLEND CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
   {id:227,upc:'028200576712',item:'MAINLINE MENTHOL',desc:'MARLBORO $10 OFF MENTHOL 100S CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:228,upc:'028200572318',item:'MAINLINE MENTHOL',desc:'MARLBORO $10 OFF MENTHOL GOLD CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
   {id:229,upc:'028200573117',item:'MAINLINE MENTHOL',desc:'MARLBORO $10 OFF MENTHOL SMOOTH CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
-  {id:230,upc:'028200577412',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $10 OFF RED LABEL 100S CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
-  {id:231,upc:'028200569714',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $10 OFF RED LABEL100S CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:230,upc:'028200577412',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $10 OFF RED LABEL 100S CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:231,upc:'028200569714',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $10 OFF RED LABEL100S CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
   {id:232,upc:'028200584212',item:'MAINLINE MENTHOL',desc:'MARLBORO $10 OFF SMOOTH MENTHOL CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
-  {id:233,upc:'028200587312',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $10 OFF SOUTHERN CUT CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
-  {id:234,upc:'028200174062',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO $1OFF RED 100S CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:233,upc:'028200587312',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $10 OFF SOUTHERN CUT CIGARETTES BOX - CTN',price:90.3,rebate:2.0,offs:'1.0',cat:'Carton'},
+  {id:234,upc:'028200174062',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO $1OFF RED 100S CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
   {id:235,upc:'028200174017',item:'MAINLINE MENTHOL',desc:'MARLBORO $1OFF/PK MENTHOL 100 CIGARETTES SGL - PK',price:9.79,rebate:0.0,offs:'1.0',cat:'CIGG'},
   {id:236,upc:'028200578815',item:'BLACK NON-MENTHOL',desc:'MARLBORO $5 OFF EDGE KINGS CIGARETTES BOX - CTN',price:65.5,rebate:25.9,offs:'0.5',cat:'Carton'},
   {id:237,upc:'028200580313',item:'MAINLINE MENTHOL',desc:'MARLBORO $5 OFF MENTHOL KINGS CIGARETTES BOX - CTN',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
   {id:238,upc:'028200332516',item:'BLACK NON-MENTHOL',desc:'MARLBORO 100? GOLD LABEL CIGARETTES BOX - CTN',price:70.5,rebate:25.9,offs:'',cat:'Carton'},
   {id:239,upc:'028200196408',item:'BLACK MENTHOL',desc:'MARLBORO 100S BLACK MENTHOL SPECIAL BLEND CIGARETTES BOX - CTN',price:89.7,rebate:6.7,offs:'',cat:'Carton'},
-  {id:240,upc:'028200009487',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 100S BLEND NO 27 CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:240,upc:'028200009487',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 100S BLEND NO 27 CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:241,upc:'028200332523',item:'BLACK NON-MENTHOL',desc:'MARLBORO 100S GOLD LABEL CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:242,upc:'028200147103',item:'MAINLINE MENTHOL',desc:'MARLBORO 100S GOLD MENTHOL CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
   {id:243,upc:'028200137302',item:'MAINLINE MENTHOL',desc:'MARLBORO 100S MENTHOL GOLD PACK SOFT CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
   {id:244,upc:'028200007827',item:'SPECIAL SELECT',desc:'MARLBORO 100S SPECIAL BLEND MENTHOL GREEN CIGARETTES SGL - PK',price:9.93,rebate:0.3,offs:'',cat:'CIGG'},
-  {id:245,upc:'028200003553',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 25S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:246,upc:'028200004635',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 25S GOLD PACK CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:247,upc:'028200002655',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 27 BLEND CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:245,upc:'028200003553',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 25S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:246,upc:'028200004635',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 25S GOLD PACK CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:247,upc:'028200002655',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 27 BLEND CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:248,upc:'028200196309',item:'72S NON MENTHOL',desc:'MARLBORO 72S CIGARETTES BOX - CTN',price:95.8,rebate:6.5,offs:'',cat:'Carton'},
   {id:249,upc:'028200172990',item:'72S MENTHOL',desc:'MARLBORO 72S MENTHOL CIGARETTES SGL - PK',price:10.14,rebate:0.65,offs:'',cat:'CIGG'},
-  {id:250,upc:'028200178350',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 83S $0.75 OFF CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
-  {id:251,upc:'028200318510',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 83s CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:252,upc:'028200318527',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO 83S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:250,upc:'028200178350',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 83S $0.75 OFF CIGARETTES SGL - PK',price:9.28,rebate:0.2,offs:'0.75',cat:'CIGG'},
+  {id:251,upc:'028200318510',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 83s CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:252,upc:'028200318527',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO 83S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:253,upc:'028200193506',item:'72S MENTHOL',desc:'MARLBORO BLACK MENTHOL 72S CIGARETTES BOX - CTN',price:101.4,rebate:6.5,offs:'',cat:'Carton'},
   {id:254,upc:'028200178268',item:'BLACK MENTHOL',desc:'MARLBORO BLACK SLATE 100S CIGARETTES SGL - PK',price:8.97,rebate:0.67,offs:'',cat:'CIGG'},
   {id:255,upc:'028200174772',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK SPECIAL BLEND 100S CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
-  {id:256,upc:'028200174642',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:257,upc:'028200173645',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND 27 $1 OFF CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
-  {id:258,upc:'028200120403',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND 27 CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:259,upc:'028200598912',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND 27 CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:260,upc:'028200194800',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:261,upc:'028200126405',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:262,upc:'028200002648',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:263,upc:'028200009418',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND NO 54 CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:264,upc:'028200009746',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BLEND VIRGINIA CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:256,upc:'028200174642',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:257,upc:'028200173645',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND 27 $1 OFF CIGARETTES SGL - PK',price:9.03,rebate:0.2,offs:'1.0',cat:'CIGG'},
+  {id:258,upc:'028200120403',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND 27 CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:259,upc:'028200598912',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND 27 CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:260,upc:'028200194800',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:261,upc:'028200126405',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:262,upc:'028200002648',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND NO 27 KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:263,upc:'028200009418',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND NO 54 CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:264,upc:'028200009746',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BLEND VIRGINIA CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:265,upc:'028200176981',item:'MAINLINE MENTHOL',desc:'MARLBORO BLUE 100S CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
   {id:266,upc:'028200196101',item:'72S NON MENTHOL',desc:'MARLBORO BLUE 72S CIGARETTES BOX - CTN',price:95.8,rebate:6.5,offs:'',cat:'Carton'},
   {id:267,upc:'028200174765',item:'BLACK NON-MENTHOL',desc:'MARLBORO BP BLACK SPECIAL BLEND $.50 CIGARETTES SGL - PK',price:6.55,rebate:2.59,offs:'0.5',cat:'CIGG'},
-  {id:268,upc:'028200003676',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BP RED 100S LABEL CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:269,upc:'028200009449',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO BP SKYLINE 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:268,upc:'028200003676',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BP RED 100S LABEL CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:269,upc:'028200009449',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO BP SKYLINE 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:270,upc:'028200319913',item:'BLACK NON-MENTHOL',desc:'MARLBORO EDGE 100S CIGARETTES BOX - CTN',price:70.5,rebate:25.9,offs:'',cat:'Carton'},
   {id:271,upc:'028200319920',item:'BLACK NON-MENTHOL',desc:'MARLBORO EDGE KINGS CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
-  {id:272,upc:'028200178749',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO EIGHTY-THREE KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:273,upc:'028200136206',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO FF 100S SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:274,upc:'028200003638',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO FILTER 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:272,upc:'028200178749',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO EIGHTY-THREE KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:273,upc:'028200136206',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO FF 100S SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:274,upc:'028200003638',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO FILTER 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:275,upc:'028200009654',item:'72S NON MENTHOL',desc:'MARLBORO FILTER GOLD 72S CIGARETTES SGL - PK',price:9.58,rebate:0.65,offs:'',cat:'CIGG'},
   {id:276,upc:'028200003867',item:'72S NON MENTHOL',desc:'MARLBORO FILTER SILVER 72S CIGARETTES SGL - PK',price:9.58,rebate:0.65,offs:'',cat:'CIGG'},
-  {id:277,upc:'028200146502',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:278,upc:'028200004659',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:279,upc:'028200143709',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD 100S SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:280,upc:'028200004376',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD 100S SOFT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:281,upc:'028200193360',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD 5 CT 2 PK CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:277,upc:'028200146502',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:278,upc:'028200004659',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:279,upc:'028200143709',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD 100S SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:280,upc:'028200004376',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD 100S SOFT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:281,upc:'028200193360',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD 5 CT 2 PK CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:282,upc:'028200196507',item:'72S NON MENTHOL',desc:'MARLBORO GOLD 72S CIGARETTES BOX - CTN',price:95.8,rebate:6.5,offs:'',cat:'Carton'},
-  {id:283,upc:'028200138408',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:284,upc:'028200138453',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:285,upc:'028200003843',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:286,upc:'028200137807',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD SOFT KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:287,upc:'028200003782',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO GOLD SOFT KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:283,upc:'028200138408',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:284,upc:'028200138453',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:285,upc:'028200003843',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:286,upc:'028200137807',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD SOFT KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:287,upc:'028200003782',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO GOLD SOFT KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:288,upc:'028200137609',item:'MAINLINE MENTHOL',desc:'MARLBORO KING BLUE MENTHOL CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
   {id:289,upc:'028200331311',item:'MAINLINE MENTHOL',desc:'MARLBORO KING BOLD ICE MENTHOL CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
   {id:290,upc:'028200331328',item:'MAINLINE MENTHOL',desc:'MARLBORO KING BOLD ICE MENTHOL CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
   {id:291,upc:'028200332417',item:'BLACK NON-MENTHOL',desc:'MARLBORO KING GOLD LABEL CIGARETTES BOX - CTN',price:70.5,rebate:25.9,offs:'',cat:'Carton'},
   {id:292,upc:'028200332424',item:'BLACK NON-MENTHOL',desc:'MARLBORO KING GOLD LABEL CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:293,upc:'028200179173',item:'MAINLINE MENTHOL',desc:'MARLBORO M SMOOTH ICE 85 BX $0.50 OFF CIGARETTES SGL - PK',price:10.29,rebate:0.0,offs:'0.5',cat:'CIGG'},
-  {id:294,upc:'028200003652',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO MEDIUM SOFT PACK KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:294,upc:'028200003652',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO MEDIUM SOFT PACK KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:295,upc:'028200577917',item:'MAINLINE MENTHOL',desc:'MARLBORO MENT GOLD $0.50 OFF 100S CIGARETTES BOX - CTN',price:102.9,rebate:0.0,offs:'0.5',cat:'Carton'},
   {id:296,upc:'028200178510',item:'MAINLINE MENTHOL',desc:'MARLBORO MENTHOL $0.75 OFF CIGARETTES SGL - PK',price:10.04,rebate:0.0,offs:'0.75',cat:'CIGG'},
   {id:297,upc:'028200549617',item:'MAINLINE MENTHOL',desc:'MARLBORO MENTHOL $1 OFF BLUE KINGS CIGARETTES BOX - CTN',price:97.9,rebate:0.0,offs:'1.0',cat:'Carton'},
@@ -4074,25 +4238,25 @@ companies.ALTRIA.data = [
   {id:355,upc:'028613200006',item:'BLACK MENTHOL',desc:'MARLBORO MIDNIGHT MENTHOL CIGARETTES SGL - PK',price:8.97,rebate:0.67,offs:'',cat:'CIGG'},
   {id:356,upc:'028200161307',item:'BLACK MENTHOL',desc:'MARLBORO MIDNIGHT MENTHOL KINGS CIGARETTES BOX - CTN',price:89.7,rebate:6.7,offs:'',cat:'Carton'},
   {id:357,upc:'028200317711',item:'BLACK MENTHOL',desc:'MARLBORO NEXT 100S CIGARETTES BOX - CTN',price:89.7,rebate:6.7,offs:'',cat:'Carton'},
-  {id:358,upc:'028200035806',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO NON MENTHOL FILTER KINGS SOFT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:359,upc:'028200135803',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO NON MENTHOL FILTER KINGS SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:358,upc:'028200035806',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO NON MENTHOL FILTER KINGS SOFT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:359,upc:'028200135803',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO NON MENTHOL FILTER KINGS SOFT CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:360,upc:'028200174925',item:'BLACK MENTHOL',desc:'MARLBORO NXT $0.50 OFF CIGARETTES SGL - PK',price:8.47,rebate:0.67,offs:'0.5',cat:'CIGG'},
-  {id:361,upc:'028200136305',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:361,upc:'028200136305',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:362,upc:'028200009630',item:'72S NON MENTHOL',desc:'MARLBORO RED 72S CIGARETTES SGL - PK',price:9.58,rebate:0.65,offs:'',cat:'CIGG'},
-  {id:363,upc:'028200135704',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:364,upc:'028200003577',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:365,upc:'028200599117',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL $0.50PK CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
-  {id:366,upc:'028200600011',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100 S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:367,upc:'028200136909',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:368,upc:'028200003690',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:369,upc:'028200136800',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL KING CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:370,upc:'028200003683',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO RED LABEL KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:363,upc:'028200135704',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED KINGS CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:364,upc:'028200003577',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:365,upc:'028200599117',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL $0.50PK CIGARETTES BOX - CTN',price:95.3,rebate:2.0,offs:'0.5',cat:'Carton'},
+  {id:366,upc:'028200600011',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100 S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:367,upc:'028200136909',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:368,upc:'028200003690',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:369,upc:'028200136800',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL KING CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:370,upc:'028200003683',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO RED LABEL KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:371,upc:'028200177094',item:'MAINLINE MENTHOL',desc:'MARLBORO RICH BLUE 100S CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
   {id:372,upc:'028200580511',item:'MAINLINE MENTHOL',desc:'MARLBORO RICH BLUE MENTHOL CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
   {id:373,upc:'028200585813',item:'SPECIAL SELECT',desc:'MARLBORO SB RED CIGARETTES BOX - CTN',price:99.3,rebate:3.0,offs:'',cat:'Carton'},
-  {id:374,upc:'028200147806',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SILVER 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:374,upc:'028200147806',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SILVER 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:375,upc:'028200138606',item:'72S NON MENTHOL',desc:'MARLBORO SILVER 72S CIGARETTES BOX - CTN',price:95.8,rebate:6.5,offs:'',cat:'Carton'},
-  {id:376,upc:'028200147707',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SILVER CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:376,upc:'028200147707',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SILVER CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:377,upc:'028200174314',item:'MAINLINE MENTHOL',desc:'MARLBORO SKYLINE 100S CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
   {id:378,upc:'028200009432',item:'MAINLINE MENTHOL',desc:'MARLBORO SKYLINE CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
   {id:379,upc:'028200324320',item:'BLACK MENTHOL',desc:'MARLBORO SLATE 100S CIGARETTES 20 CT SGL - PK',price:8.97,rebate:0.67,offs:'',cat:'CIGG'},
@@ -4101,13 +4265,13 @@ companies.ALTRIA.data = [
   {id:382,upc:'028200324214',item:'BLACK MENTHOL',desc:'MARLBORO SLATE KINGS CIGARETTES BOX - CTN',price:89.7,rebate:6.7,offs:'',cat:'Carton'},
   {id:383,upc:'028200174734',item:'MAINLINE MENTHOL',desc:'MARLBORO SMOOTH $1 OFF 100S CIGARETTES SGL - PK',price:9.79,rebate:0.0,offs:'1.0',cat:'CIGG'},
   {id:384,upc:'028200132307',item:'MAINLINE MENTHOL',desc:'MARLBORO SMOOTH KINGS CIGARETTES BOX - CTN',price:107.9,rebate:0.0,offs:'',cat:'Carton'},
-  {id:385,upc:'028200330628',item:'MAINLINE MENTHOL',desc:'MARLBORO SMOTH ICE CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
-  {id:386,upc:'028200003584',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOFT KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:387,upc:'028200003621',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOFT RED 100S FILTER CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:388,upc:'028200174963',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT $0.50 OFF CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
-  {id:389,upc:'028200142405',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
-  {id:390,upc:'028200004246',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:391,upc:'028200587213',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO SOUTHERNCUT HARD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:385,upc:'028200330628',item:'MAINLINE MENTHOL',desc:'MARLBORO SMOOTH ICE CIGARETTES SGL - PK',price:10.79,rebate:0.0,offs:'',cat:'CIGG'},
+  {id:386,upc:'028200003584',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOFT KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:387,upc:'028200003621',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOFT RED 100S FILTER CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:388,upc:'028200174963',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT $0.50 OFF CIGARETTES SGL - PK',price:9.53,rebate:0.2,offs:'0.5',cat:'CIGG'},
+  {id:389,upc:'028200142405',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT 100S CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
+  {id:390,upc:'028200004246',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOUTHERN CUT CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:391,upc:'028200587213',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO SOUTHERNCUT HARD CIGARETTES BOX - CTN',price:100.3,rebate:2.0,offs:'',cat:'Carton'},
   {id:392,upc:'028200195302',item:'BLACK NON-MENTHOL',desc:'MARLBORO SPECIAL BLEND BLACK 100S CIGARETTES BOX - CTN',price:70.5,rebate:25.9,offs:'',cat:'Carton'},
   {id:393,upc:'028200009531',item:'BLACK NON-MENTHOL',desc:'MARLBORO SPECIAL BLEND BLACK 100S CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:394,upc:'028200009524',item:'BLACK NON-MENTHOL',desc:'MARLBORO SPECIAL BLEND BLACK CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
@@ -4124,15 +4288,15 @@ companies.ALTRIA.data = [
   {id:405,upc:'028200005687',item:'SPECIAL SELECT',desc:'MARLBORO SPECIAL BLEND RED 100S CIGARETTES SGL - PK',price:9.93,rebate:0.3,offs:'',cat:'CIGG'},
   {id:406,upc:'028200156501',item:'SPECIAL SELECT',desc:'MARLBORO SPECIAL BLEND RED CIGARETTES BOX - CTN',price:99.3,rebate:3.0,offs:'',cat:'Carton'},
   {id:407,upc:'028200005656',item:'SPECIAL SELECT',desc:'MARLBORO SPECIAL BLEND RED CIGARETTES SGL - PK',price:9.93,rebate:0.3,offs:'',cat:'CIGG'},
-  {id:408,upc:'028200004789',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO ULTA LIGHT SILVER 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:409,upc:'028200004772',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO ULTA LIGHT SILVER KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:410,upc:'028200009715',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:411,upc:'028200009685',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
-  {id:412,upc:'028200009722',item:'MAINLINE RED/GOD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:408,upc:'028200004789',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO ULTRA LIGHT SILVER 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:409,upc:'028200004772',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO ULTRA LIGHT SILVER KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:410,upc:'028200009715',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND 100S CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:411,upc:'028200009685',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
+  {id:412,upc:'028200009722',item:'MAINLINE RED/GOLD or NON-MENTHOL',desc:'MARLBORO VIRGINIA BLEND KINGS CIGARETTES SGL - PK',price:10.03,rebate:0.2,offs:'',cat:'CIGG'},
   {id:413,upc:'028200008879',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK GOLD KINGS CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:414,upc:'028200001672',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK GOLD 100S CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
-  {id:415,upc:'028200328328',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK LABLE',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
-  {id:416,upc:'028200330123',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK LABLE RESEAL',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
+  {id:415,upc:'028200328328',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK LABEL',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
+  {id:416,upc:'028200330123',item:'BLACK NON-MENTHOL',desc:'MARLBORO BLACK LABEL RESEAL',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:417,upc:'028200174321',item:'BLACK NON-MENTHOL',desc:'MARLBORO $1OFF BLACK CIGARETTES SGL - PK',price:6.05,rebate:2.59,offs:'1.0',cat:'CIGG'},
   {id:418,upc:'028200174673',item:'BLACK NON-MENTHOL',desc:'MARLBORO 100\'S SPECIAL BLEND BLACK CIGARETTES SGL - PK',price:7.05,rebate:2.59,offs:'',cat:'CIGG'},
   {id:419,upc:'028200179319',item:'BLACK NON-MENTHOL',desc:'MARLBORO $1 OFF BLACK & GOLD KING CIGARETTES SGL - PK',price:6.05,rebate:2.59,offs:'1.0',cat:'CIGG'},
@@ -4156,7 +4320,7 @@ companies.ALTRIA.data = [
   {id:437,upc:'028200309914',item:'L&M',desc:'L&M RED 100S CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
   {id:438,upc:'028200309969',item:'L&M',desc:'L&M 100S CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
   {id:439,upc:'028200310118',item:'L&M',desc:'L&M FULL FLAVOR CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
-  {id:440,upc:'028200310613',item:'L&M',desc:'L&M FULL FLAVOUR 100S CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
+  {id:440,upc:'028200310613',item:'L&M',desc:'L&M FULL FLAVOR 100S CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
   {id:441,upc:'028200310712',item:'L&M',desc:'L&M LIGHT KING CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
   {id:442,upc:'028200310811',item:'L&M',desc:'L&M LIGHT 100S CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
   {id:443,upc:'028200310910',item:'L&M',desc:'L&M MENTHOL KING CIGARETTES BOX - CTN',price:94.4,rebate:5.0,offs:'',cat:'Carton'},
@@ -4182,7 +4346,7 @@ companies.ALTRIA.nextId = 461;
 
 companies.CANDY.data = [
   {id:1,upc:'009800554041',item:'King',desc:'KINDER BUENO KING SIZE CHOCOLATE HAZELNUT BARS 3 OZ SGL - PK',price:4.39,rebate:0.0,offs:'',cat:'King'},
-  {id:2,upc:'010700960658',item:'King',desc:'HEATH MILK CHOCOLATE  KING SIZE TOFFEE CANDY BAR 2.6 OZ 18 PK - BOX',price:4.39,rebate:0.0,offs:'',cat:'King'},
+  {id:2,upc:'010700960658',item:'King',desc:'HEATH MILK CHOCOLATE KING SIZE TOFFEE CANDY BAR 2.6 OZ 18 PK - BOX',price:4.39,rebate:0.0,offs:'',cat:'King'},
   {id:3,upc:'041376113598',item:'King',desc:'RICE KRISPIES STRAWBERRY KING SIZE CANDY 2.75 OZ SGL - PK',price:4.39,rebate:0.0,offs:'',cat:'King'},
   {id:4,upc:'034000236237',item:'King',desc:'KIT KAT KING SIZE DARK CHOCOLATE WAFER CANDY BAR 3 OZ SGL - PK',price:4.39,rebate:0.0,offs:'',cat:'King'},
   {id:5,upc:'034000544059',item:'King',desc:'TWIZZLERS STRAWBERRY CANDY TWISTS 30 CT 5 OZ SGL - BAG',price:4.39,rebate:0.0,offs:'',cat:'King'},
@@ -4351,7 +4515,7 @@ companies.CANDY.data = [
   {id:168,upc:'709434040568',item:'Regular',desc:'LA MOLIENDA COCO CANDY SGL -PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:169,upc:'709434150014',item:'Regular',desc:'LA MOLIENDA SESAME SEED PATTY CANDY 3.4 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:170,upc:'014200612208',item:'Regular',desc:'PARADE COTTON CANDY 2 OZ SGL - CUP',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
-  {id:171,upc:'079200471811',item:'Regular',desc:'LAFFY TAFFY LAFF FRUIT FLAVOURS CANDY BITES 2 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
+  {id:171,upc:'079200471811',item:'Regular',desc:'LAFFY TAFFY LAFF FRUIT FLAVORS CANDY BITES 2 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:172,upc:'034000001521',item:'Regular',desc:'REESES REESESTICKS PEANUT BUTTER MILK CHOCOLATE BAR 1.5 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:173,upc:'077232031041',item:'Regular',desc:'MIGHTY MARKED PEACH RINGS CANDY 4.5 OZ - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:174,upc:'099900100873',item:'Regular',desc:'NESTLE BUTTERFINGER CHOCOLATE CANDY BAR 1.9 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
@@ -4388,7 +4552,7 @@ companies.CANDY.data = [
   {id:205,upc:'044989201126',item:'Regular',desc:'EL GUAPO CHICLET CANELS GUM CANDY 15 PC SGL - BAG',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:206,upc:'709434061822',item:'Regular',desc:'LA MOLIENDA JUMBO COCUNUT CANDY 5.3 OZ SGL -PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:207,upc:'709434929290',item:'Regular',desc:'LA MOLIENDA MAZAPAN BIG PEANUT CANDY 4.22 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
-  {id:208,upc:'852605000240',item:'Regular',desc:'BANDERA EL SUPER LEON COCONUT CANDY 2 OZ  SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
+  {id:208,upc:'852605000240',item:'Regular',desc:'BANDERA EL SUPER LEON COCONUT CANDY 2 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:209,upc:'022000009203',item:'Regular',desc:'WRIGLEY\'S FREEDENT SPEARMINT PLENT PAK GUM CANDY 15 CT SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:210,upc:'034000000050',item:'Regular',desc:'REESES NUTRAGEOUS MILK CHOCOLATE BAR 1.66 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
   {id:211,upc:'034000000463',item:'Regular',desc:'KIT KAT DARK CHOCOLATE WAFER CANDY BAR 1.5 OZ SGL - PK',price:2.59,rebate:0.0,offs:'',cat:'Regular'},
@@ -5152,7 +5316,7 @@ companies.ARA.data = [
   {id:673,upc:'012000183874',item:'PEPSI 16OZ',desc:'MOUNTAIN DEW KICKSTART STRAWBERRY LEMONADE FLAVORED DRINK 16 OZ SGL - CAN',price:2.29,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:674,upc:'012000001574',item:'PEPSI 20 OZ',desc:'AQUAFINA PURE WATER 1L SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:675,upc:'012000001598',item:'AQUAFINA 20',desc:'AQUAFINA PURE WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:676,upc:'012000012037',item:'AQUAFINA 20',desc:'AQUAFINA FLAVOUR SPLASH RASPBERRY DRINKING WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:676,upc:'012000012037',item:'AQUAFINA 20',desc:'AQUAFINA FLAVOR SPLASH RASPBERRY DRINKING WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:677,upc:'012000012044',item:'AQUAFINA 20',desc:'AQUAFINA WILD BERRY FLAVOR SPLASH WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:678,upc:'012000012051',item:'AQUAFINA 20',desc:'AQUAFINA CITRUS BLEND FLAVOR SPLASH WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:679,upc:'012000017421',item:'AQUAFINA 20',desc:'AQUAFINA GRAPE FLAVOR SPLASH WATER 20 OZ SGL - BTL',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
@@ -5162,35 +5326,35 @@ companies.ARA.data = [
   {id:683,upc:'012000019432',item:'AQUAFINA 20',desc:'AQUAFINA 20 OZ',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:684,upc:'012000021251',item:'AQUAFINA 20',desc:'AQUAFINA 20 OZ',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:685,upc:'012000021268',item:'AQUAFINA 20',desc:'AQUAFINA 20 OZ',price:1.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:686,upc:'012000009105',item:'PEPSI 20OZ FLAVOURS',desc:'MUG ROOT BEER SOFT DRINK 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:686,upc:'012000009105',item:'PEPSI 20OZ FLAVORS',desc:'MUG ROOT BEER SOFT DRINK 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:687,upc:'012000009358',item:'PEPSI 2L',desc:'MUG ROOT BEER SOFT DRINK 67.6 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:688,upc:'041710217982',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH ORANGE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:689,upc:'041710227981',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH GRAPE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:690,upc:'041710237980',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH STRAWBERRY SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:691,upc:'078000013283',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH ORANGE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:688,upc:'041710217982',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH ORANGE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:689,upc:'041710227981',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH GRAPE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:690,upc:'041710237980',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH STRAWBERRY SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:691,upc:'078000013283',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH ORANGE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:692,upc:'078000013368',item:'PEPSI 2L',desc:'CRUSH ORANGE SODA 67.6 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:693,upc:'078000013528',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH GRAPE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:694,upc:'078000013696',item:'PEPSI 20OZ FLAVOURS',desc:'CRUSH STRAWBERRY SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:693,upc:'078000013528',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH GRAPE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:694,upc:'078000013696',item:'PEPSI 20OZ FLAVORS',desc:'CRUSH STRAWBERRY SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:695,upc:'852480007112',item:'CELSIUS 16 OZ',desc:'CELSIUS ESSENTIALS BLUE CRUSH ENERGY DRINK 16 OZ SGL - CAN',price:3.29,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:696,upc:'012000002373',item:'PEPSI 2L',desc:'SIERRA MIST LEMON LIME SODA 67.63 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:697,upc:'012000003547',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:698,upc:'012000019722',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST CRANBERRY SPLASH SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:699,upc:'012000024399',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST DIET CRANBERRY SPLASH SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:697,upc:'012000003547',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:698,upc:'012000019722',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST CRANBERRY SPLASH SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:699,upc:'012000024399',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST DIET CRANBERRY SPLASH SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:700,upc:'012000024405',item:'PEPSI 2L',desc:'DIET SIERRA MIST CRANBERRY SPLASH SODA 67.62 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:701,upc:'012000027864',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST UNDERCOVER SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:702,upc:'012000032493',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST RUBY SPLASH GRAPEFRUIT SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:701,upc:'012000027864',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST UNDERCOVER SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:702,upc:'012000032493',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST RUBY SPLASH GRAPEFRUIT SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:703,upc:'012000150050',item:'PEPSI 2L',desc:'SIERRA MIST TWST LEMON LIME SODA 67.62 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:704,upc:'012000150098',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:705,upc:'012000150203',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST TWIST CRANBERRY LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:704,upc:'012000150098',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:705,upc:'012000150203',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST TWIST CRANBERRY LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:706,upc:'012000158056',item:'PEPSI 2L',desc:'SIERRA MIST NATURAL LEMON LIME SODA 67.62 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:707,upc:'012000194153',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST CRANBERRY SPLASH 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:708,upc:'012000201158',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST FREE LEMON LIME DIET SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:709,upc:'012000215094',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:710,upc:'012000027390',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST RUBY 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:711,upc:'012000150111',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA TWIST CHERRY 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:712,upc:'012000151613',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST TWIST DIET 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:713,upc:'012000214196',item:'PEPSI 20OZ FLAVOURS',desc:'SIERRA MIST SPLASH 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:714,upc:'078000206401',item:'PEPSI 20OZ FLAVOURS',desc:'SCHWEPPES GINGER ALE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:707,upc:'012000194153',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST CRANBERRY SPLASH 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:708,upc:'012000201158',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST FREE LEMON LIME DIET SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:709,upc:'012000215094',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST NATURAL LEMON LIME SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:710,upc:'012000027390',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST RUBY 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:711,upc:'012000150111',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA TWIST CHERRY 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:712,upc:'012000151613',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST TWIST DIET 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:713,upc:'012000214196',item:'PEPSI 20OZ FLAVORS',desc:'SIERRA MIST SPLASH 20 OZ',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:714,upc:'078000206401',item:'PEPSI 20OZ FLAVORS',desc:'SCHWEPPES GINGER ALE SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:715,upc:'078000206463',item:'PEPSI 2L',desc:'SCHWEPPES CAFFEINE FREE GINGER ALE 67.6 OZ SGL - BTL',price:3.99,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:716,upc:'012000001314',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:717,upc:'012000001345',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW DIET SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
@@ -5266,7 +5430,7 @@ companies.ARA.data = [
   {id:787,upc:'012000230998',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW ZERO SUGAR PURPLE THUNDER 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:788,upc:'012000231308',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW STAR SPANGLED SPLASH RED BERRY SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:789,upc:'012000231339',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW FREEDOM FUSION LEMONADE PEACH SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
-  {id:790,upc:'012000240041',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW VOODEW FLAVOUR DRINK SODA 20 OZ 24 BTL - PK',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
+  {id:790,upc:'012000240041',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW VOODEW FLAVOR DRINK SODA 20 OZ 24 BTL - PK',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:791,upc:'012000240201',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW GAME FUEL BLACKBERRY RASPBERRY FLAVOR 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:792,upc:'012000278280',item:'PEPSI 20 OZ',desc:'MOUNTAIN DEW GAME FUEL TROPICAL SODA 20 OZ SGL - BTL',price:2.69,rebate:0.00,offs:'',cat:'PEPSI'},
   {id:793,upc:'012000509247',item:'PEPSI 16OZ',desc:'MOUNTAIN DEW SODA 16 OZ SGL - BTL',price:2.29,rebate:0.00,offs:'',cat:'PEPSI'},
@@ -5955,13 +6119,28 @@ function saveToStorage() {
 
 function saveToFirebase(snapshot) {
   if (!window._firebaseReady || !window.fbDb) {
-    // Firebase not configured yet - silently skip, localStorage is the fallback
     return;
   }
+  // If no snapshot provided, build it now
+  if (!snapshot) {
+    snapshot = {};
+    Object.keys(companies).forEach(co => {
+      snapshot[co] = {
+        data: companies[co].data || [],
+        nextId: companies[co].nextId || 1,
+        _changed: [...(companies[co]._changed || new Set())]
+      };
+    });
+  }
   try {
-    window._fbOwnSave = true; // flag so real-time listener ignores our own write
+    window._fbOwnSave = true;
     const dbRef = window.fbRef(window.fbDb, 'dashboard');
-    window.fbSet(dbRef, snapshot)
+    // Sanitize: replace dots in any object keys to avoid Firebase path errors
+    const safeSnapshot = JSON.parse(JSON.stringify(snapshot, function(key, value) {
+      return value;
+    }));
+    // Store as JSON string to avoid Firebase interpreting dots in keys as paths
+    window.fbSet(dbRef, { _json: JSON.stringify(snapshot), _v: 2 })
       .then(() => {
         console.log('✓ Firebase: data saved');
         showFbStatus('saved');
@@ -5969,6 +6148,7 @@ function saveToFirebase(snapshot) {
       .catch(err => {
         console.warn('Firebase save error:', err.message);
         showFbStatus('error');
+        showToast('Firebase error: ' + err.message);
       });
   } catch(e) {
     console.warn('Firebase save exception:', e);
@@ -5994,6 +6174,10 @@ function showFbStatus(state) {
 function applyFirebaseSnapshot(fbData) {
   // Called when real-time listener gets update from another device
   // Stale-data guard: skip if Firebase has fewer items than built-in
+  // Handle new format (stored as JSON string)
+  if (fbData && fbData._json) {
+    try { fbData = JSON.parse(fbData._json); } catch(e) {}
+  }
   let fbIsStale = false;
   Object.keys(companies).forEach(co => {
     const builtInCount = (typeof BUILT_IN_COUNTS !== 'undefined' ? BUILT_IN_COUNTS[co] : null) || companies[co].data.length;
@@ -6158,7 +6342,11 @@ async function loadFromFirebase() {
     const snap   = await window.fbGet(dbRef);
     if (!snap.exists()) return false;
 
-    const fbData = snap.val();
+    let fbData = snap.val();
+    // Handle new format (stored as JSON string) and old format
+    if (fbData && fbData._json) {
+      try { fbData = JSON.parse(fbData._json); } catch(e) {}
+    }
     const hasData = Object.keys(companies).some(co =>
       fbData[co] && Array.isArray(fbData[co].data) && fbData[co].data.length > 0
     );
@@ -6917,7 +7105,7 @@ function admForceSyncToFirebase() {
   });
   const total = Object.keys(companies).reduce((s,co) => s + (companies[co].data||[]).length, 0);
   window._fbOwnSave = true;
-  window.fbSet(window.fbRef(window.fbDb, 'dashboard'), snapshot)
+  window.fbSet(window.fbRef(window.fbDb, 'dashboard'), { _json: JSON.stringify(snapshot), _v: 2 })
     .then(() => {
       toast(`✓ Pushed ${total} items to Firebase cloud`);
       admLog('#1677ff', `Force-pushed all data to Firebase - ${total} items`);
@@ -7151,46 +7339,37 @@ function admExportAll(mode = 'combined') {
 }
 
 function downloadCSV(csv, filename) {
-  const bom = '\uFEFF';
-  const full = bom + csv;
+  var bom = '\uFEFF';
+  var full = bom + csv;
 
-  // Method 1: Web Share API with File (best on Android Chrome)
-  if (navigator.canShare && window.File) {
-    try {
-      const blob = new Blob([full], { type: 'text/csv;charset=utf-8;' });
-      const file = new File([blob], filename, { type: 'text/csv' });
-      if (navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: filename })
-          .then(() => showToast('Shared successfully'))
-          .catch(() => _dlFallback(full, filename));
-        return;
-      }
-    } catch(e) { /* fall through */ }
-  }
+  try {
+    var blob = new Blob([full], {type: 'text/csv;charset=utf-8;'});
+    var url  = URL.createObjectURL(blob);
 
-  // Method 2: Blob + object URL
-  if (window.Blob && window.URL && window.URL.createObjectURL) {
-    try {
-      const blob = new Blob([full], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+    // window.open triggers Android download manager — most reliable method
+    var opened = window.open(url, '_blank');
+
+    // Fallback if popup blocked
+    if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+      var a = document.createElement('a');
       a.href = url;
       a.download = filename;
-      a.style.cssText = 'position:fixed;top:-200px;left:-200px;';
+      a.style.cssText = 'position:fixed;top:-999px;left:-999px;';
       document.body.appendChild(a);
-      a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-      setTimeout(function() {
-        URL.revokeObjectURL(url);
-        if (document.body.contains(a)) document.body.removeChild(a);
-      }, 3000);
-      // Also show fallback bar after short delay in case download didn't trigger
-      setTimeout(function() { _dlFallback(full, filename, true); }, 1500);
-      return;
-    } catch(e) { /* fall through */ }
-  }
+      a.click();
+      document.body.removeChild(a);
+    }
 
-  _dlFallback(full, filename);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    showToast('✓ Export ready — check Downloads');
+    return;
+  } catch(e) {}
+
+  // Final fallback: show copy modal
+  var rowCount = csv.split('\n').length - 1;
+  showCsvViewer(csv, filename, rowCount, false);
 }
+
 
 function _closeCsvBar() { var b = document.getElementById('_csvBar'); if(b) b.remove(); }
 
@@ -7600,6 +7779,61 @@ function resetPassword() {
 // ════════════════════════════════════════════
 // END ADMIN PANEL JS
 // ════════════════════════════════════════════
+
+// CSV Viewer / Copy fallback
+var _csvViewerData = '';
+var _csvViewerFilename = '';
+
+function showCsvViewer(csv, filename, count, downloaded) {
+  _csvViewerData = csv;
+  _csvViewerFilename = filename;
+  var modal = document.getElementById('csvViewerModal');
+  var ta = document.getElementById('csvViewerText');
+  var cnt = document.getElementById('csvViewerCount');
+  if (!modal || !ta) return;
+  ta.value = csv;
+  if (cnt) cnt.textContent = (downloaded ? '✅ Downloaded! Also available here: ' : '') + count + ' items  |  ' + filename;
+  modal.style.display = 'flex';
+}
+
+function closeCsvViewer() {
+  var modal = document.getElementById('csvViewerModal');
+  if (modal) modal.style.display = 'none';
+  _csvViewerData = '';
+}
+
+function copyCsvToClipboard() {
+  var ta = document.getElementById('csvViewerText');
+  if (!ta) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(_csvViewerData).then(function() {
+      var btn = document.getElementById('csvCopyBtn');
+      if (btn) { btn.textContent = '✅ Copied!'; btn.style.background = '#18a058'; }
+      setTimeout(function() {
+        var b = document.getElementById('csvCopyBtn');
+        if (b) { b.textContent = '📋 Copy to Clipboard'; b.style.background = '#e8285a'; }
+      }, 3000);
+    }).catch(function() { _legacyCopy(ta); });
+  } else {
+    _legacyCopy(ta);
+  }
+}
+
+function _legacyCopy(ta) {
+  ta.select();
+  ta.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+    showToast('Copied to clipboard!');
+  } catch(e) {
+    showToast('Select all text in box and copy manually');
+  }
+}
+
+function tryDownloadCsv() {
+  downloadCSV(_csvViewerData, _csvViewerFilename);
+}
+
 </script>
 
 
@@ -7616,6 +7850,27 @@ function resetPassword() {
       <button onclick="closeDeleteConfirm()" style="flex:1;padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--card2);color:var(--ink2);font-family:Syne,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">Cancel</button>
       <button id="deleteGroupConfirmBtn" onclick="confirmDeleteGroup()" style="flex:1;padding:12px;border-radius:12px;border:none;background:#dc2626;color:#fff;font-family:Syne,sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">Yes, Delete</button>
     </div>
+  </div>
+</div>
+
+<!-- CSV Viewer Modal (copy fallback) -->
+<div id="csvViewerModal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;flex-direction:column;padding:16px;">
+  <div style="background:#fff;border-radius:20px;width:100%;max-width:500px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-family:Syne,sans-serif;font-weight:800;font-size:1rem;">📄 CSV Ready</div>
+        <div id="csvViewerCount" style="font-size:0.72rem;color:#888;margin-top:2px;"></div>
+      </div>
+      <button onclick="closeCsvViewer()" style="background:#f0f2f5;border:none;border-radius:10px;padding:6px 12px;font-size:0.8rem;cursor:pointer;font-weight:700;">✕ Close</button>
+    </div>
+    <div style="padding:12px 16px;background:#f8f9fa;border-bottom:1px solid #eee;display:flex;gap:8px;flex-wrap:wrap;">
+      <button id="csvCopyBtn" onclick="copyCsvToClipboard()" style="flex:1;min-width:120px;background:#e8285a;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-family:Syne,sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;">📋 Copy to Clipboard</button>
+      <button onclick="tryDownloadCsv()" style="flex:1;min-width:120px;background:#f0f2f5;color:#333;border:none;border-radius:10px;padding:10px 16px;font-family:Syne,sans-serif;font-weight:700;font-size:0.82rem;cursor:pointer;">⬇ Try Download</button>
+    </div>
+    <div style="padding:10px 14px;background:#fff3cd;border-bottom:1px solid #ffd;font-size:0.7rem;color:#856404;">
+      💡 On Android: tap <b>Copy to Clipboard</b> → open Google Sheets or Excel → paste
+    </div>
+    <textarea id="csvViewerText" readonly style="flex:1;padding:12px 14px;font-family:JetBrains Mono,monospace;font-size:0.62rem;border:none;outline:none;resize:none;overflow-y:auto;min-height:200px;background:#f8f9fa;color:#333;"></textarea>
   </div>
 </div>
 </body>
