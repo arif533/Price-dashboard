@@ -341,7 +341,52 @@ body {
 .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
 
 /* BULK PRICE MODAL */
-.bulk-modal { width: 720px; max-width: 97vw; max-height: 90vh; display: flex; flex-direction: column; }
+.bulk-modal { width: 780px; max-width: 97vw; max-height: 90vh; display: flex; flex-direction: column; }
+
+/* BULK MODAL TABS */
+.bulk-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin: 0 0 16px; flex-shrink:0; }
+.bulk-tab { font-family:'JetBrains Mono',monospace; font-size:0.68rem; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; padding:10px 18px; border:none; background:none; cursor:pointer; color:var(--ink3); border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; }
+.bulk-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.bulk-tab:hover:not(.active) { color:var(--ink2); }
+.bulk-tab-pane { display:none; flex:1; overflow-y:auto; min-height:0; }
+.bulk-tab-pane.active { display:flex; flex-direction:column; }
+
+/* PRICE UPDATE SHEET */
+.pus-wrap { padding:0 2px 8px; flex:1; }
+.pus-section { background:var(--surface); border:1.5px solid var(--border); border-radius:12px; margin-bottom:12px; overflow:hidden; }
+.pus-section-head { display:flex; align-items:center; gap:9px; padding:9px 14px; border-bottom:1.5px solid var(--border); background:var(--card2); }
+.pus-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.pus-title { font-family:'Syne',sans-serif; font-size:0.78rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; }
+.pus-badge { font-size:0.48rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; padding:2px 7px; border-radius:20px; color:#fff; }
+.pus-sub-grid { display:grid; grid-template-columns:1fr 1fr; }
+.pus-sub { }
+.pus-sub + .pus-sub { border-left:1.5px solid var(--border); }
+.pus-sub-head { display:flex; align-items:center; gap:6px; padding:6px 12px; background:#f9fafb; border-bottom:1px solid var(--border); font-size:0.54rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink2); }
+.pus-sub-dot { width:5px; height:5px; border-radius:50%; }
+.pus-table { width:100%; border-collapse:collapse; }
+.pus-table th { background:#f0f2f5; padding:5px 10px; text-align:left; font-size:0.47rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink3); font-weight:700; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; }
+.pus-table th:not(:nth-child(2)) { text-align:center; }
+.pus-table td { border-bottom:1px solid #eee; vertical-align:middle; padding:0; }
+.pus-table tr:last-child td { border-bottom:none; }
+.pus-td-sno { width:28px; text-align:center; color:var(--ink3); font-size:0.52rem; padding:0 4px; border-right:1px solid #eee; background:#fafafa; font-family:'JetBrains Mono',monospace; }
+.pus-td-group { border-right:1px solid #eee; }
+.pus-td-group-inner { display:flex; align-items:center; padding:0 8px; min-height:30px; font-size:0.58rem; font-family:'JetBrains Mono',monospace; color:var(--ink2); font-weight:600; gap:6px; }
+.pus-td-group-inner .pus-grp-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+.pus-td-input { padding:2px 4px; }
+.pus-price-input { width:100%; border:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:600; color:var(--purple); text-align:center; padding:4px 6px; border-radius:0; outline:none; transition:background 0.12s; }
+.pus-price-input:focus { background:rgba(124,58,237,0.07); border-radius:6px; }
+.pus-price-input:not(:placeholder-shown) { color:var(--purple); }
+.pus-rebate-input { width:100%; border:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:600; color:var(--accent); text-align:center; padding:4px 6px; border-radius:0; outline:none; transition:background 0.12s; }
+.pus-rebate-input:focus { background:rgba(232,40,90,0.06); border-radius:6px; }
+.pus-row-changed { background:rgba(124,58,237,0.04) !important; }
+.pus-row-changed .pus-td-group { background:rgba(124,58,237,0.04) !important; }
+.pus-full { grid-column:1/-1; }
+.pus-full .pus-sub { border-left:none; }
+.pus-apply-bar { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card2); border-top:1.5px solid var(--border); flex-shrink:0; gap:10px; }
+.pus-apply-info { font-size:0.62rem; color:var(--ink3); font-family:'JetBrains Mono',monospace; }
+.pus-apply-info strong { color:var(--purple); }
+.pus-cur-price { font-size:0.55rem; color:var(--ink3); font-family:'JetBrains Mono',monospace; display:block; text-align:center; }
+
 .bp-price-row { display: flex; align-items: center; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
 .bp-price-box { flex: 1; min-width: 120px; background: var(--card2); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; }
 .bp-price-box.new { border-color: rgba(124,58,237,0.35); background: rgba(124,58,237,0.05); }
@@ -907,7 +952,16 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
 <div class="modal-bg" id="bulkModal">
   <div class="modal bulk-modal">
     <div class="modal-head">BULK PRICE CHANGE</div>
-    <div class="modal-sub">Select an item group, set the new base price — all variants recalculate automatically</div>
+
+    <!-- Tabs -->
+    <div class="bulk-tabs">
+      <button class="bulk-tab active" id="bulk-tab-classic" onclick="switchBulkTab('classic')">⚡ Quick Edit</button>
+      <button class="bulk-tab" id="bulk-tab-sheet" onclick="switchBulkTab('sheet')">📋 Price Update Sheet</button>
+    </div>
+
+    <!-- ── TAB 1: CLASSIC ── -->
+    <div class="bulk-tab-pane active" id="bulk-pane-classic" style="padding:0 2px;">
+    <div class="modal-sub" style="margin-bottom:12px;">Select an item group, set the new base price — all variants recalculate automatically</div>
 
     <!-- Category filter pills -->
     <div class="form-row">
@@ -1005,6 +1059,22 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
       <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
       <button class="btn btn-accent" id="bp-apply-btn" onclick="applyBulkPrice()" disabled>Apply to All Variants</button>
     </div>
+    </div><!-- end bulk-pane-classic -->
+
+    <!-- ── TAB 2: PRICE UPDATE SHEET ── -->
+    <div class="bulk-tab-pane" id="bulk-pane-sheet">
+      <div class="pus-wrap" id="pus-wrap">
+        <!-- built by buildPriceSheet() -->
+      </div>
+      <div class="pus-apply-bar">
+        <div class="pus-apply-info">Changes will apply same cascade rules · <strong id="pus-changed-count">0</strong> groups modified</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
+          <button class="btn btn-accent" id="pus-apply-btn" onclick="applyPriceSheet()" disabled>Apply Price Sheet</button>
+        </div>
+      </div>
+    </div><!-- end bulk-pane-sheet -->
+
   </div>
 </div>
 
@@ -1127,6 +1197,11 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
         <div class="sbar-lbl" id="stat-lbl-otbc">Other Tobacco</div>
         <div class="sbar-num" id="s-otbc" style="color:var(--otbc)">0</div>
         <div class="sbar-meta"><span id="cnt-otbc">0</span> items</div>
+      </div>
+      <div class="sbar-card" id="sbar-roll-cell" style="display:none;">
+        <div class="sbar-lbl" id="stat-lbl-roll">Roll / 5-Can</div>
+        <div class="sbar-num" id="s-roll" style="color:var(--gold)">0</div>
+        <div class="sbar-meta"><span id="cnt-roll">0</span> items</div>
       </div>
       <div class="sbar-card">
         <div class="sbar-lbl">Avg Price</div>
@@ -2457,11 +2532,259 @@ function openBulkPrice() {
   buildPills();
   buildGroupSelect();
 
+  // Always start on classic tab
+  document.querySelectorAll('.bulk-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bulk-tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('bulk-tab-classic').classList.add('active');
+  document.getElementById('bulk-pane-classic').classList.add('active');
+
   document.getElementById('bulkModal').classList.add('open');
 }
 
 function closeBulkModal() {
   document.getElementById('bulkModal').classList.remove('open');
+}
+
+// ── BULK MODAL TAB SWITCHER ──────────────────────────────────
+function switchBulkTab(tab) {
+  document.querySelectorAll('.bulk-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.bulk-tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('bulk-tab-' + tab).classList.add('active');
+  document.getElementById('bulk-pane-' + tab).classList.add('active');
+  if (tab === 'sheet') buildPriceSheet();
+}
+
+// ── PRICE UPDATE SHEET ───────────────────────────────────────
+let pusChanges = {}; // { groupName: { price: float|null, rebate: float|null } }
+
+function buildPriceSheet() {
+  pusChanges = {};
+  document.getElementById('pus-changed-count').textContent = '0';
+  document.getElementById('pus-apply-btn').disabled = true;
+
+  const cats = getCats();
+  const co = companies[currentCompany];
+  const wrap = document.getElementById('pus-wrap');
+  if (!wrap) return;
+
+  // Get unique groups per cat key
+  function groupsForCat(catKey) {
+    return [...new Set(data.filter(r => r.cat === catKey).map(r => r.item))].sort();
+  }
+
+  // Build section HTML
+  function makeTable(groups, catColor, mult) {
+    if (!groups.length) return '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>';
+    let rows = '';
+    groups.forEach((g, i) => {
+      // Get representative item (first one)
+      const items = data.filter(r => r.item === g);
+      const base = items[0];
+      const curPrice = base ? (base.price / getMultiplier(g)).toFixed(2) : '';
+      const curRebate = base ? (base.rebate / getMultiplier(g)).toFixed(2) : '';
+      rows += `<tr class="pus-data-row" id="pus-row-${CSS.escape(g)}">
+        <td class="pus-td-sno">${i+1}</td>
+        <td class="pus-td-group">
+          <div class="pus-td-group-inner">
+            <span class="pus-grp-dot" style="background:${catColor}"></span>
+            <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${g}">${g}</span>
+          </div>
+          <span class="pus-cur-price">cur: $${curPrice} · reb: $${curRebate}</span>
+        </td>
+        <td class="pus-td-input">
+          <input class="pus-price-input" type="number" step="0.01" min="0" placeholder="$${curPrice}"
+            data-group="${g}" data-field="price"
+            oninput="onPusInput(this)">
+        </td>
+        <td class="pus-td-input">
+          <input class="pus-rebate-input" type="number" step="0.01" min="0" placeholder="$${curRebate}"
+            data-group="${g}" data-field="rebate"
+            oninput="onPusInput(this)">
+        </td>
+      </tr>`;
+    });
+    return `<table class="pus-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th>Group Name</th>
+        <th>New Price ($)</th>
+        <th>New Rebate ($)</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  let html = '';
+
+  // CIGARETTES section (CIGG + Carton side by side)
+  const ciggCat = cats.find(c => c.key === 'CIGG');
+  const ctnCat  = cats.find(c => c.key === 'Carton');
+  const ciggGrps = ciggCat ? groupsForCat('CIGG') : [];
+  const ctnGrps  = ctnCat  ? groupsForCat('Carton') : [];
+  // Only show if company has cigarettes
+  if (ciggGrps.length || ctnGrps.length) {
+    html += `<div class="pus-section">
+      <div class="pus-section-head">
+        <div class="pus-dot" style="background:var(--cigg)"></div>
+        <div class="pus-title" style="color:var(--cigg)">Cigarettes</div>
+        <span class="pus-badge" style="background:var(--cigg)">CIGG</span>
+      </div>
+      <div class="pus-sub-grid">
+        <div class="pus-sub">
+          <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--cigg)"></div> Singles (×1)</div>
+          ${ciggGrps.length ? makeTable(ciggGrps, 'var(--cigg)', 1) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+        </div>
+        <div class="pus-sub">
+          <div class="pus-sub-head"><div class="pus-sub-dot" style="background:#c06010"></div> Cartons (×10)</div>
+          ${ctnGrps.length ? makeTable(ctnGrps, '#c06010', 10) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // OTHER TOBACCO section — split singles vs rolls across all OT-type cats
+  // Collect all OT cat keys for this company (OTBC, OTBC-ROLL, RJR Other Tobacco, ITG Other Tobacco)
+  const otbcCatKeys = cats
+    .filter(c => c.key === 'OTBC' || c.key === 'OTBC-ROLL' ||
+                 c.key === 'RJR Other Tobacco' || c.key === 'ITG Other Tobacco')
+    .map(c => c.key);
+
+  // All unique OT groups from any OT cat
+  const allOtbcGrps = [...new Set(
+    data.filter(r => otbcCatKeys.includes(r.cat)).map(r => r.item)
+  )].sort();
+
+  // Split by is5Can
+  const otbcSingleGrps = allOtbcGrps.filter(g => !is5Can(g));
+  const otbcRollGrps   = allOtbcGrps.filter(g => is5Can(g));
+
+  if (allOtbcGrps.length) {
+    html += `<div class="pus-section">
+      <div class="pus-section-head">
+        <div class="pus-dot" style="background:var(--otbc)"></div>
+        <div class="pus-title" style="color:var(--otbc)">Other Tobacco</div>
+        <span class="pus-badge" style="background:var(--otbc)">OTBC</span>
+      </div>
+      <div class="pus-sub-grid">
+        <div class="pus-sub">
+          <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--otbc)"></div> Singles (×1)</div>
+          ${otbcSingleGrps.length ? makeTable(otbcSingleGrps, 'var(--otbc)', 1) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+        </div>
+        <div class="pus-sub">
+          <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--gold)"></div> Rolls / 5-Can (×5)</div>
+          ${otbcRollGrps.length ? makeTable(otbcRollGrps, 'var(--gold)', 5) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // VAPES section (full width)
+  const vapesCat = cats.find(c => c.key === 'Vapes' || c.key === 'RJR-Vapes');
+  const vapesGrps = vapesCat ? groupsForCat(vapesCat.key) : [];
+  if (vapesGrps.length) {
+    html += `<div class="pus-section">
+      <div class="pus-section-head">
+        <div class="pus-dot" style="background:var(--blue)"></div>
+        <div class="pus-title" style="color:var(--blue)">Vapes</div>
+        <span class="pus-badge" style="background:var(--blue)">VAPES</span>
+        <span style="font-size:0.52rem;color:var(--blue);margin-left:4px;">★ Fill only if there are vape updates</span>
+      </div>
+      <div class="pus-sub-grid pus-full">
+        <div class="pus-sub" style="grid-column:1/-1">
+          ${makeTable(vapesGrps, 'var(--blue)', 1)}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ARA / CANDY — generic cats
+  const otherCats = cats.filter(c => !['CIGG','Carton','OTBC','OTBC-ROLL','Vapes','RJR-Vapes','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key) && !otbcCatKeys.includes(c.key));
+  otherCats.forEach(c => {
+    const grps = groupsForCat(c.key);
+    if (!grps.length) return;
+    html += `<div class="pus-section">
+      <div class="pus-section-head">
+        <div class="pus-dot" style="background:${c.color}"></div>
+        <div class="pus-title" style="color:${c.color}">${c.label}</div>
+      </div>
+      <div class="pus-sub-grid pus-full">
+        <div class="pus-sub" style="grid-column:1/-1">
+          ${makeTable(grps, c.color, 1)}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  wrap.innerHTML = html || '<div style="padding:20px;color:var(--ink3);font-size:0.75rem;">No data for this company.</div>';
+}
+
+function onPusInput(el) {
+  const group = el.dataset.group;
+  const field = el.dataset.field;
+  const val = el.value.trim();
+
+  if (!pusChanges[group]) pusChanges[group] = { price: null, rebate: null };
+  pusChanges[group][field] = val !== '' ? parseFloat(val) : null;
+
+  // Highlight row
+  const row = document.getElementById('pus-row-' + CSS.escape(group));
+  if (row) {
+    const hasChange = pusChanges[group].price !== null || pusChanges[group].rebate !== null;
+    row.classList.toggle('pus-row-changed', hasChange);
+  }
+
+  // Count dirty groups
+  const changed = Object.values(pusChanges).filter(v => v.price !== null || v.rebate !== null).length;
+  document.getElementById('pus-changed-count').textContent = changed;
+  document.getElementById('pus-apply-btn').disabled = changed === 0;
+}
+
+function applyPriceSheet() {
+  let totalChanged = 0;
+  const log = [];
+
+  Object.entries(pusChanges).forEach(([group, changes]) => {
+    const { price: newBase, rebate: newRebate } = changes;
+    if (newBase === null && newRebate === null) return;
+    if (newBase !== null && isNaN(newBase)) return;
+    if (newRebate !== null && isNaN(newRebate)) return;
+
+    const selfMult   = getMultiplier(group);
+    const partner5   = (!is5Can(group) && !isCarton(group)) ? find5CanPartner(group)   : null;
+    const partnerCtn = (!is5Can(group) && !isCarton(group)) ? findCartonPartner(group) : null;
+    const partnerSgl = is5Can(group) ? findSinglePartner(group) : isCarton(group) ? findSingleFromCarton(group) : null;
+
+    const singleItems = data.filter(r => r.item === group && !(r.cat||'').toLowerCase().includes('carton'));
+    const singleCat   = singleItems[0]?.cat || '';
+    const isOtbcGrp   = singleCat.toUpperCase().includes('OTBC') || singleCat.toLowerCase().includes('other tobacco');
+    const cartonMult  = isOtbcGrp ? 5 : 10;
+
+    const affectedGroups = [{ name: group, mult: selfMult }];
+    if (partner5)   affectedGroups.push({ name: partner5,   mult: 5 });
+    if (partnerCtn) affectedGroups.push({ name: partnerCtn, mult: cartonMult });
+    if (partnerSgl) affectedGroups.push({ name: partnerSgl, mult: 1 });
+
+    data = data.map(r => {
+      const ag = affectedGroups.find(g => g.name === r.item);
+      if (!ag) return r;
+      const offAmt = parseOffs(r.offs);
+      const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * ag.mult) - offAmt).toFixed(2)) : r.price;
+      const updatedRebate = newRebate !== null ? +(newRebate * ag.mult).toFixed(2) : r.rebate;
+      totalChanged++;
+      companies[currentCompany]._changed.add(r.id);
+      return { ...r, price: updatedPrice, rebate: updatedRebate };
+    });
+
+    log.push(group);
+  });
+
+  if (!totalChanged) { showToast('No valid changes to apply'); return; }
+
+  companies[currentCompany].data = data;
+  closeBulkModal();
+  saveToStorage();
+  render();
+  toast(`✓ Price sheet applied — ${totalChanged} items updated across ${log.length} groups`);
 }
 
 function onGroupChange() {
@@ -3205,6 +3528,7 @@ const ALTRIA_CATS = [
   { key:'Carton',                label:'Cartons',                color:'var(--cigg)',  statId:'s-ctn',   cntId:'cnt-ctn',   mobCntId:'mob-cnt-ctn',   mobStatId:'ms-ctn',   colorClass:'c-accent' },
   { key:'Vapes',                 label:'Vapes',                  color:'var(--vapes)', statId:'s-vapes', cntId:'cnt-vapes', mobCntId:'mob-cnt-vapes', mobStatId:'ms-vapes', colorClass:'c-blue'   },
   { key:'OTBC',                  label:'ALTRIA Other Tobacco',   color:'var(--otbc)',  statId:'s-otbc',  cntId:'cnt-otbc',  mobCntId:'mob-cnt-otbc',  mobStatId:'ms-otbc',  colorClass:'c-green'  },
+  { key:'OTBC-ROLL',             label:'Roll / 5-Can',           color:'var(--gold)',  statId:'s-roll',  cntId:'cnt-roll',  mobCntId:'mob-cnt-roll',  mobStatId:'ms-roll',  colorClass:'c-gold'   },
 ];
 const CANDY_CATS = [
   { key:'King',    label:'King Size', color:'var(--gold)',  statId:'s-cigg',  cntId:'cnt-cigg',  mobCntId:'mob-cnt-cigg',  mobStatId:'ms-cigg',  colorClass:'c-gold'  },
@@ -3407,12 +3731,13 @@ function buildCategoryUI() {
     } else {
       const otbc = co.otbcLabel || 'Other Tobacco';
       const vapes = co.vapesLabel || 'Vapes';
+      const hasRollCat = co.cats && co.cats.some(c => c.key === 'OTBC-ROLL');
       catSel.innerHTML = `
         <option value="CIGG">Cigarettes (Single)</option>
         <option value="Carton">Cartons (CIGG ×10)</option>
         <option value="${vapes}">Vapes</option>
-        <option value="${otbc}">${otbc}</option>
-        <option value="${otbc} -5CAN">${otbc} - 5-Can Roll</option>`;
+        <option value="${otbc}">${otbc} (Single)</option>
+        ${hasRollCat ? '<option value="OTBC-ROLL">Roll / 5-Can</option>' : ''}`;
       catSel.onchange = onModalCatChange;
     }
   }
@@ -3883,9 +4208,9 @@ companies.RJR.nextId = 386;
 companies.ALTRIA.data = [
   {id:1,upc:'042100011289',item:'GRIZZLY',desc:'GRIZZLY $0.50 OFF WINTERGREEN SNUFF TOBACCO 5 CT 1.2 OZ SGL - BOX',price:5.99,rebate:0.00,offs:'0.5',cat:'OTBC'},
   {id:2,upc:'042100016826',item:'GRIZZLY',desc:'GRIZZLY $0.50OFF LONGCUT WINTERGREEN SNUFF SGL - CAN',price:5.99,rebate:0.00,offs:'0.5',cat:'OTBC'},
-  {id:3,upc:'073100012631',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN SPITFREE BLUE MINT NICOTINE POUCHES 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:4,upc:'073100025891',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT WINTERGREEN TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:5,upc:'073100025952',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT STRAIGHT TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:3,upc:'073100012631',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN SPITFREE BLUE MINT NICOTINE POUCHES 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:4,upc:'073100025891',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT WINTERGREEN TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:5,upc:'073100025952',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT STRAIGHT TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:6,upc:'042100026306',item:'GRIZZLY',desc:'GRIZZLY $0.25OFF WINTERGREEN POUCHES SNUFF 1.2 OZ SGL - CAN',price:6.24,rebate:0.00,offs:'0.25',cat:'OTBC'},
   {id:7,upc:'042100026337',item:'GRIZZLY',desc:'GRIZZLY $0.25OFF LONG CUT WINTERGREEN SNUFF 1.2 OZ SGL - CAN',price:6.24,rebate:0.00,offs:'0.25',cat:'OTBC'},
   {id:8,upc:'042100000047',item:'GRIZZLY',desc:'GRIZZLY MINT MOIST SNUFF SGL - CAN',price:6.49,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3908,10 +4233,10 @@ companies.ALTRIA.data = [
   {id:25,upc:'042100020564',item:'GRIZZLY',desc:'GRIZZLY SNUS ARCTIC BLUE MOIST SNUFF SGL - TIN',price:6.49,rebate:0.00,offs:'',cat:'OTBC'},
   {id:26,upc:'042100025392',item:'GRIZZLY',desc:'GRIZZLY SNUS NATURAL MOIST SNUFF SGL - TIN',price:6.49,rebate:0.00,offs:'',cat:'OTBC'},
   {id:27,upc:'642984291991',item:'GRIZZLY',desc:'GRIZZLY DK WNTGRN PCH',price:6.49,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:28,upc:'073100027215',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN WINTERGREEN SMOKELESS TOBACCO 5 CN - PK',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:29,upc:'073100030369',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT MINT TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:30,upc:'073100030390',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN MINT NICOTINE POUCHES 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:31,upc:'073100025976',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN EXTRA LONG CUT NATURAL TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:28,upc:'073100027215',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN WINTERGREEN SMOKELESS TOBACCO 5 CN - PK',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:29,upc:'073100030369',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN LONG CUT MINT TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:30,upc:'073100030390',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN MINT NICOTINE POUCHES 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:31,upc:'073100025976',item:'COPENHAGEN POPULAR ROLL',desc:'COPENHAGEN EXTRA LONG CUT NATURAL TOBACCO 1.2 OZ 5 CN - ROLL',price:33.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:32,upc:'073100000089',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN LONG CUT SMOOTH WINTERGREEN TOBACCO 1.2 OZ SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:33,upc:'073100000218',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN WINTERGREEN SMOKELESS TOBACCO SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:34,upc:'073100000362',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN LONG CUT MINT TOBACCO 1.2 OZ SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3919,9 +4244,9 @@ companies.ALTRIA.data = [
   {id:36,upc:'073100000553',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN WINTERGREEN TOBACCO POUCH 0.82 OZ SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:37,upc:'073100002632',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN SPITFREE BLUE MINT NICOTINE POUCHES SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:38,upc:'073100002649',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN SPITFREE GREEN MINT NICOTINE POUCHES SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:39,upc:'073100010934',item:'SKOAL ROLL',desc:'SKOAL FINE CUT WINTERGREEN TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:40,upc:'073100010958',item:'SKOAL ROLL',desc:'SKOAL LONG CUT WINTERGREEN SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:41,upc:'073100010972',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CLASSIC MINT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:39,upc:'073100010934',item:'SKOAL ROLL',desc:'SKOAL FINE CUT WINTERGREEN TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:40,upc:'073100010958',item:'SKOAL ROLL',desc:'SKOAL LONG CUT WINTERGREEN SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:41,upc:'073100010972',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CLASSIC MINT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:42,upc:'073100000034',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN WEYMANS RESERVE LONG CUT 1.20 OZ SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:43,upc:'073100001079',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN FINE CUT SNUFF TOBACCO 1.2 OZ SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:44,upc:'073100001215',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN LONG CUT TOBACCO 1.2 OZ SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3929,18 +4254,18 @@ companies.ALTRIA.data = [
   {id:46,upc:'073100003141',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN ORIGINAL TOBACCO POUCH 0.82 OZ SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:47,upc:'073100009624',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN FINE CUT WINTERGREEN MOIST SNUFF 1.2 OZ SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:48,upc:'073100003257',item:'COPENHAGEN MAINLINE',desc:'COPENHAGEN ORIGINAL FINE CUT SNUFF TOBACCO SGL - CAN',price:7.60,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:49,upc:'073100010996',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CLASSIC STRAIGHT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:50,upc:'073100011856',item:'SKOAL ROLL',desc:'SKOAL MINT MOIST SNUFF 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:51,upc:'073100012853',item:'SKOAL ROLL',desc:'SKOAL LONG CUT APPLE BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:52,upc:'073100014789',item:'SKOAL ROLL',desc:'SKOAL POUCHES WINTERGREEN TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:53,upc:'073100014802',item:'SKOAL ROLL',desc:'SKOAL LONG CUT BERRY BLEND SMOKELESS TOBACCO SNUS 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:54,upc:'073100019067',item:'SKOAL ROLL',desc:'SKOAL LONG CUT PEACH BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:55,upc:'073100022142',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CITRUS BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:56,upc:'073100031687',item:'SKOAL ROLL',desc:'SKOAL X-TRA MINT BLEND TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:57,upc:'073100031700',item:'SKOAL ROLL',desc:'SKOAL XTRA LONG CUT WINTERGREEN BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:58,upc:'073100031724',item:'SKOAL ROLL',desc:'SKOAL LONG CUT XTRA MINT BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:59,upc:'073100011030',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CHERRY BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:60,upc:'073100031670',item:'SKOAL ROLL',desc:'SKOAL X-TRA WINTERGREEN BLEND TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:49,upc:'073100010996',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CLASSIC STRAIGHT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:50,upc:'073100011856',item:'SKOAL ROLL',desc:'SKOAL MINT MOIST SNUFF 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:51,upc:'073100012853',item:'SKOAL ROLL',desc:'SKOAL LONG CUT APPLE BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:52,upc:'073100014789',item:'SKOAL ROLL',desc:'SKOAL POUCHES WINTERGREEN TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:53,upc:'073100014802',item:'SKOAL ROLL',desc:'SKOAL LONG CUT BERRY BLEND SMOKELESS TOBACCO SNUS 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:54,upc:'073100019067',item:'SKOAL ROLL',desc:'SKOAL LONG CUT PEACH BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:55,upc:'073100022142',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CITRUS BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:56,upc:'073100031687',item:'SKOAL ROLL',desc:'SKOAL X-TRA MINT BLEND TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:57,upc:'073100031700',item:'SKOAL ROLL',desc:'SKOAL XTRA LONG CUT WINTERGREEN BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:58,upc:'073100031724',item:'SKOAL ROLL',desc:'SKOAL LONG CUT XTRA MINT BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:59,upc:'073100011030',item:'SKOAL ROLL',desc:'SKOAL LONG CUT CHERRY BLEND SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:60,upc:'073100031670',item:'SKOAL ROLL',desc:'SKOAL X-TRA WINTERGREEN BLEND TOBACCO 0.82 OZ 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:61,upc:'073100090899',item:'SKOAL ROLL',desc:'SKOAL LONG CUT COOL SPEARMINT MOIST SNUFF 5 CN - ROLL',price:39.00,rebate:0.00,offs:'',cat:'OTBC'},
   {id:62,upc:'073100000607',item:'SKOAL',desc:'SKOAL LONG CUT CLASSIC STRAIGHT SMOKELESS TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:63,upc:'073100000881',item:'SKOAL',desc:'SKOAL LONG CUT CLASSIC MINT SMOKELESS TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3949,19 +4274,19 @@ companies.ALTRIA.data = [
   {id:66,upc:'073100001673',item:'SKOAL',desc:'SKOAL X-TRA WINTERGREEN BLEND TOBACCO 0.82 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:67,upc:'073100001680',item:'SKOAL',desc:'SKOAL X-TRA MINT BLEND TOBACCO 0.82 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:68,upc:'073100001703',item:'SKOAL',desc:'SKOAL XTRA LONG CUT WINTERGREEN BLEND TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:69,upc:'042100000054',item:'GRIZZLY ROLL',desc:'GRIZZLY MINT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:70,upc:'042100000078',item:'GRIZZLY ROLL',desc:'GRIZZLY STRAIGHT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:71,upc:'042100000672',item:'GRIZZLY ROLL',desc:'GRIZZLY 1900 LC NATURAL MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:72,upc:'042100005448',item:'GRIZZLY ROLL',desc:'GRIZZLY WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:73,upc:'042100005530',item:'GRIZZLY ROLL',desc:'GRIZZLY NATURAL MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:74,upc:'042100008722',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT WINTERGREEN MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:75,upc:'042100008746',item:'GRIZZLY ROLL',desc:'GRIZZLY FINE CUT NATURAL MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:76,upc:'042100008876',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT STRAIGHT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:77,upc:'042100009118',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT MINT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:78,upc:'042100009170',item:'GRIZZLY ROLL',desc:'GRIZZLY EXTRA LONG CUT NATURAL MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:79,upc:'042100011234',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT DARK WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:80,upc:'042100011265',item:'GRIZZLY ROLL',desc:'GRIZZLY DARK WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:81,upc:'042100012217',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT DARK SELEC MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:69,upc:'042100000054',item:'GRIZZLY ROLL',desc:'GRIZZLY MINT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:70,upc:'042100000078',item:'GRIZZLY ROLL',desc:'GRIZZLY STRAIGHT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:71,upc:'042100000672',item:'GRIZZLY ROLL',desc:'GRIZZLY 1900 LC NATURAL MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:72,upc:'042100005448',item:'GRIZZLY ROLL',desc:'GRIZZLY WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:73,upc:'042100005530',item:'GRIZZLY ROLL',desc:'GRIZZLY NATURAL MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:74,upc:'042100008722',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT WINTERGREEN MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:75,upc:'042100008746',item:'GRIZZLY ROLL',desc:'GRIZZLY FINE CUT NATURAL MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:76,upc:'042100008876',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT STRAIGHT MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:77,upc:'042100009118',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT MINT SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:78,upc:'042100009170',item:'GRIZZLY ROLL',desc:'GRIZZLY EXTRA LONG CUT NATURAL MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:79,upc:'042100011234',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT DARK WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:80,upc:'042100011265',item:'GRIZZLY ROLL',desc:'GRIZZLY DARK WINTERGREEN MOIST SNUFF 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:81,upc:'042100012217',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT DARK SELEC MOIST SNUFF 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:82,upc:'042100025545',item:'GRIZZLY ROLL',desc:'GRIZZLY LONG CUT WINTERGREEN SMOKELESS TOBACCO 1.2 OZ 5 CN - ROLL',price:32.45,rebate:0.00,offs:'',cat:'OTBC'},
   {id:83,upc:'073100005138',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN LC STRAIGHT 1.2 OZ SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
   {id:84,upc:'073100008764',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN LONG CUT WINTERGREEN TOBACCO 1.2 OZ SGL - CAN',price:6.60,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3970,10 +4295,10 @@ companies.ALTRIA.data = [
   {id:87,upc:'073100000317',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN $0.50 OFF LONGCUT STRAIGHT TOBACCO 1.2 OZ SGL - CAN',price:6.10,rebate:0.00,offs:'0.5',cat:'OTBC'},
   {id:88,upc:'073100000560',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN $0.50OFF WINTERGREEN TOBACCO 0.82 OZ SGL - CAN',price:6.10,rebate:0.00,offs:'0.5',cat:'OTBC'},
   {id:89,upc:'073100007163',item:'COPENHAGEN POPULAR',desc:'COPENHAGEN $0.50 OFF LONG CUT WINTERGREEN 1.2 OZ SGL - CAN',price:6.10,rebate:0.00,offs:'0.5',cat:'OTBC'},
-  {id:90,upc:'073100010897',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN FINE CUT SNUFF TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:91,upc:'073100014611',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN LONG CUT ORIGINAL TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:92,upc:'073100014772',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN ORIGINAL POUCHES TOBACCO 0.82 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:93,upc:'073100032837',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN LONG CUT SOUTHERN BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:90,upc:'073100010897',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN FINE CUT SNUFF TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:91,upc:'073100014611',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN LONG CUT ORIGINAL TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:92,upc:'073100014772',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN ORIGINAL POUCHES TOBACCO 0.82 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:93,upc:'073100032837',item:'COPENHAGEN MAINLINE ROLL',desc:'COPENHAGEN LONG CUT SOUTHERN BLEND TOBACCO 1.2 OZ 5 CN - ROLL',price:38.00,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:94,upc:'073100002724',item:'SKOAL',desc:'SKOAL LONG CUT XTRA MINT BLEND TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:95,upc:'073100002861',item:'SKOAL',desc:'SKOAL LONG CUT CHERRY BLEND SMOKELESS TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:96,upc:'073100002885',item:'SKOAL',desc:'SKOAL LONG CUT SPEARMINT SMOKELESS TOBACCO 1.2 OZ SGL - CAN',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
@@ -3993,17 +4318,17 @@ companies.ALTRIA.data = [
   {id:110,upc:'073100006975',item:'SKOAL',desc:'SKOAL XTRA LONG CUT COOL SPEARMINT TOBACCO',price:7.80,rebate:0.00,offs:'',cat:'OTBC'},
   {id:111,upc:'073100008900',item:'SKOAL SNUS',desc:'SKOAL MINT SNUS SGL - CAN',price:6.89,rebate:0.00,offs:'',cat:'OTBC'},
   {id:112,upc:'073100008924',item:'SKOAL SNUS',desc:'SKOAL SMOOTH MINT SNUS TOBACCO 0.58 OZ SGL - CAN',price:6.89,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:113,upc:'073100026027',item:'SKOAL SNUS ROLL',desc:'SKOAL MINT SNUS 5 CN - ROLL',price:34.45,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:113,upc:'073100026027',item:'SKOAL SNUS ROLL',desc:'SKOAL MINT SNUS 5 CN - ROLL',price:34.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:114,upc:'073100001734',item:'RED SEAL',desc:'RED SEAL LONG CUT WINTERGREEN MOIST SNUFF 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
   {id:115,upc:'073100001741',item:'RED SEAL',desc:'RED SEAL FINE CUT NATURAL MOIST SNUFF 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
   {id:116,upc:'073100001857',item:'RED SEAL',desc:'RED SEAL FINE CUT WINTERGREEN TOBACCO 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
   {id:117,upc:'073100001970',item:'RED SEAL',desc:'RED SEAL LONG CUT STRAIGHT MOIST SNUFF 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
   {id:118,upc:'073100004551',item:'RED SEAL',desc:'RED SEAL LONG CUT NATURAL MOIST SNUFF 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
   {id:119,upc:'073100004568',item:'RED SEAL',desc:'RED SEAL LONG CUT MINT TOBACCO 1.5 OZ SGL - CAN',price:6.29,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:120,upc:'073100010651',item:'RED SEAL ROLL',desc:'RED SEAL LONG CUT WINTERGREEN MOIST SNUFF 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:121,upc:'073100010668',item:'RED SEAL ROLL',desc:'RED SEAL FINE CUT NATURAL MOIST SNUFF 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:122,upc:'073100011887',item:'RED SEAL ROLL',desc:'RED SEAL FINE CUT WINTERGREEN TOBACCO 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC'},
-  {id:123,upc:'073100011849',item:'RED SEAL ROLL',desc:'RED SEAL LONG CUT MINT TOBACCO 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC'},
+  {id:120,upc:'073100010651',item:'RED SEAL ROLL',desc:'RED SEAL LONG CUT WINTERGREEN MOIST SNUFF 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:121,upc:'073100010668',item:'RED SEAL ROLL',desc:'RED SEAL FINE CUT NATURAL MOIST SNUFF 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:122,upc:'073100011887',item:'RED SEAL ROLL',desc:'RED SEAL FINE CUT WINTERGREEN TOBACCO 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
+  {id:123,upc:'073100011849',item:'RED SEAL ROLL',desc:'RED SEAL LONG CUT MINT TOBACCO 1.5 OZ 5 CN - ROLL',price:31.45,rebate:0.00,offs:'',cat:'OTBC-ROLL'},
   {id:124,upc:'073100002793',item:'SKOAL',desc:'SKOAL $0.50 OFF X-TRA MINT TOBACCO 1.3 OZ SGL - CAN',price:7.30,rebate:0.00,offs:'0.5',cat:'OTBC'},
   {id:125,upc:'073100005343',item:'SKOAL',desc:'SKOAL $0.50 OFF MINT POUCH 0.82 OZ SGL - CAN',price:7.30,rebate:0.00,offs:'0.5',cat:'OTBC'},
   {id:126,upc:'073100005817',item:'SKOAL',desc:'SKOAL $0.50 OFF LC WINTERGREEN POUCHES TOBACCO SGL - CAN',price:7.30,rebate:0.00,offs:'0.5',cat:'OTBC'},
