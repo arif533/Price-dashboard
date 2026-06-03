@@ -211,6 +211,7 @@ body {
 
 /* BUTTONS */
 .btn { font-family: 'JetBrains Mono', monospace; font-size: 0.7716rem; letter-spacing: 0.04em; padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border2); cursor: pointer; transition: all 0.18s; font-weight: 600; white-space: nowrap; }
+.btn-sm { font-size: 0.68rem; padding: 5px 13px; border-radius: 16px; }
 .btn-ghost { background: var(--surface); color: var(--ink2); }
 .btn-ghost:hover { background: var(--card2); color: var(--ink); border-color: var(--border2); }
 .btn-accent {
@@ -341,7 +342,7 @@ body {
 .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 24px; }
 
 /* BULK PRICE MODAL */
-.bulk-modal { width: 780px; max-width: 97vw; max-height: 90vh; display: flex; flex-direction: column; }
+.bulk-modal { width: min(920px, 96vw); max-height: 90vh; display: flex; flex-direction: column; }
 
 /* BULK MODAL TABS */
 .bulk-tabs { display:flex; gap:0; border-bottom:2px solid var(--border); margin: 0 0 16px; flex-shrink:0; }
@@ -352,40 +353,43 @@ body {
 .bulk-tab-pane.active { display:flex; flex-direction:column; }
 
 /* PRICE UPDATE SHEET */
-.pus-wrap { padding:0 2px 8px; flex:1; }
-.pus-section { background:var(--surface); border:1.5px solid var(--border); border-radius:12px; margin-bottom:12px; overflow:hidden; }
-.pus-section-head { display:flex; align-items:center; gap:9px; padding:9px 14px; border-bottom:1.5px solid var(--border); background:var(--card2); }
+.pus-wrap { padding:0 0 4px; flex:1; overflow-y:auto; }
+.pus-section { background:var(--surface); border:1.5px solid var(--border); border-radius:10px; margin-bottom:8px; overflow:hidden; }
+.pus-section-head { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1.5px solid var(--border); background:var(--card2); }
 .pus-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-.pus-title { font-family:'Syne',sans-serif; font-size:0.78rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; }
+.pus-title { font-family:'Syne',sans-serif; font-size:0.72rem; font-weight:800; letter-spacing:0.06em; text-transform:uppercase; }
 .pus-badge { font-size:0.48rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; padding:2px 7px; border-radius:20px; color:#fff; }
 .pus-sub-grid { display:grid; grid-template-columns:1fr 1fr; }
 .pus-sub { }
 .pus-sub + .pus-sub { border-left:1.5px solid var(--border); }
-.pus-sub-head { display:flex; align-items:center; gap:6px; padding:6px 12px; background:#f9fafb; border-bottom:1px solid var(--border); font-size:0.54rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink2); }
+.pus-sub-head { display:flex; align-items:center; gap:5px; padding:4px 10px; background:#f9fafb; border-bottom:1px solid var(--border); border-top:1px solid var(--border); font-size:0.52rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink2); }
 .pus-sub-dot { width:5px; height:5px; border-radius:50%; }
 .pus-table { width:100%; border-collapse:collapse; }
-.pus-table th { background:#f0f2f5; padding:5px 10px; text-align:left; font-size:0.47rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--ink3); font-weight:700; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; }
+.pus-table th { background:#f0f2f5; padding:5px 8px; text-align:left; font-size:0.55rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink3); font-weight:700; border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; }
 .pus-table th:not(:nth-child(2)) { text-align:center; }
 .pus-table td { border-bottom:1px solid #eee; vertical-align:middle; padding:0; }
 .pus-table tr:last-child td { border-bottom:none; }
-.pus-td-sno { width:28px; text-align:center; color:var(--ink3); font-size:0.52rem; padding:0 4px; border-right:1px solid #eee; background:#fafafa; font-family:'JetBrains Mono',monospace; }
+.pus-td-sno { width:30px; text-align:center; color:var(--ink3); font-size:0.65rem; padding:0 4px; border-right:1px solid #eee; background:#fafafa; font-family:'JetBrains Mono',monospace; }
 .pus-td-group { border-right:1px solid #eee; }
-.pus-td-group-inner { display:flex; align-items:center; padding:0 8px; min-height:30px; font-size:0.58rem; font-family:'JetBrains Mono',monospace; color:var(--ink2); font-weight:600; gap:6px; }
+.pus-td-group-inner { display:flex; align-items:center; padding:4px 8px; min-height:0; font-size:0.68rem; font-family:'JetBrains Mono',monospace; color:var(--ink2); font-weight:600; gap:6px; }
 .pus-td-group-inner .pus-grp-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
-.pus-td-input { padding:2px 4px; }
-.pus-price-input { width:100%; border:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:600; color:var(--purple); text-align:center; padding:4px 6px; border-radius:0; outline:none; transition:background 0.12s; }
-.pus-price-input:focus { background:rgba(124,58,237,0.07); border-radius:6px; }
-.pus-price-input:not(:placeholder-shown) { color:var(--purple); }
-.pus-rebate-input { width:100%; border:none; background:transparent; font-family:'JetBrains Mono',monospace; font-size:0.7rem; font-weight:600; color:var(--accent); text-align:center; padding:4px 6px; border-radius:0; outline:none; transition:background 0.12s; }
-.pus-rebate-input:focus { background:rgba(232,40,90,0.06); border-radius:6px; }
+.pus-td-input { padding:3px 4px; width:88px; }
+.pus-price-input { width:100%; border:1.5px solid #ddd; background:#f5f3ff; font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:700; color:var(--purple); text-align:center; padding:5px 4px; border-radius:6px; outline:none; transition:all 0.12s; }
+.pus-price-input:focus { background:#ede9fe; border-color:var(--purple); }
+.pus-price-input:not(:placeholder-shown) { background:#ede9fe; border-color:var(--purple); }
+.pus-rebate-input { width:100%; border:1.5px solid #ddd; background:#fff0f4; font-family:'JetBrains Mono',monospace; font-size:0.82rem; font-weight:700; color:var(--accent); text-align:center; padding:5px 4px; border-radius:6px; outline:none; transition:all 0.12s; }
+.pus-rebate-input:focus { background:#ffe0e8; border-color:var(--accent); }
 .pus-row-changed { background:rgba(124,58,237,0.04) !important; }
 .pus-row-changed .pus-td-group { background:rgba(124,58,237,0.04) !important; }
 .pus-full { grid-column:1/-1; }
 .pus-full .pus-sub { border-left:none; }
-.pus-apply-bar { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--card2); border-top:1.5px solid var(--border); flex-shrink:0; gap:10px; }
+.pus-apply-bar { display:flex; align-items:center; justify-content:space-between; padding:7px 12px; background:var(--card2); border-top:1.5px solid var(--border); flex-shrink:0; gap:8px; }
+.pus-section-footer { display:flex; align-items:center; justify-content:flex-end; gap:6px; padding:6px 10px; background:#fafafa; border-top:1px solid var(--border); }
+.pus-section-count { font-size:0.62rem; font-family:'JetBrains Mono',monospace; color:var(--ink3); margin-right:auto; }
+.pus-section-count strong { color:var(--purple); }
 .pus-apply-info { font-size:0.62rem; color:var(--ink3); font-family:'JetBrains Mono',monospace; }
 .pus-apply-info strong { color:var(--purple); }
-.pus-cur-price { font-size:0.55rem; color:var(--ink3); font-family:'JetBrains Mono',monospace; display:block; text-align:center; }
+.pus-cur-price { font-size:0.58rem; color:var(--ink3); font-family:'JetBrains Mono',monospace; display:block; text-align:left; padding:0 8px 3px; }
 
 .bp-price-row { display: flex; align-items: center; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
 .bp-price-box { flex: 1; min-width: 120px; background: var(--card2); border: 1.5px solid var(--border); border-radius: 12px; padding: 14px 16px; }
@@ -1067,11 +1071,8 @@ tr.row-selected td { border-color: rgba(232,40,90,0.15); }
         <!-- built by buildPriceSheet() -->
       </div>
       <div class="pus-apply-bar">
-        <div class="pus-apply-info">Changes will apply same cascade rules · <strong id="pus-changed-count">0</strong> groups modified</div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
-          <button class="btn btn-accent" id="pus-apply-btn" onclick="applyPriceSheet()" disabled>Apply Price Sheet</button>
-        </div>
+        <div class="pus-apply-info">Enter prices above · <strong id="pus-changed-count">0</strong> groups modified</div>
+        <button class="btn btn-ghost" onclick="closeBulkModal()">Cancel</button>
       </div>
     </div><!-- end bulk-pane-sheet -->
 
@@ -1551,6 +1552,7 @@ const BUILT_IN_COUNTS = {RJR:385, ITG:93, ALTRIA:460, CANDY:290, ARA:1444};
 let data = [];
 let nextId = 386;
 let activeBpCat = 'ALL'; // used by bulk price modal
+let activeBpRolls = false; // synthetic rolls filter
 let currentCat = 'ALL';
 let currentGroup = 'ALL';
 let currentSort = 'item';
@@ -2486,6 +2488,7 @@ function openBulkPrice() {
   // Build category pills
   const pillsEl = document.getElementById('bp-cat-pills');
   activeBpCat = 'ALL';
+  activeBpRolls = false;
   pillsEl.innerHTML = '';
 
   function buildPills() {
@@ -2494,7 +2497,7 @@ function openBulkPrice() {
     const allPill = document.createElement('button');
     allPill.textContent = 'All';
     allPill.className = 'bp-cat-pill' + (activeBpCat === 'ALL' ? ' active' : '');
-    allPill.onclick = () => { activeBpCat = 'ALL'; buildPills(); buildGroupSelect(); };
+    allPill.onclick = () => { activeBpCat = 'ALL'; activeBpRolls = false; buildPills(); buildGroupSelect(); };
     pillsEl.appendChild(allPill);
     // Category pills
     cats.forEach(c => {
@@ -2502,17 +2505,33 @@ function openBulkPrice() {
       if (!cnt) return;
       const pill = document.createElement('button');
       pill.textContent = c.label + ' (' + cnt + ')';
-      pill.className = 'bp-cat-pill' + (activeBpCat === c.key ? ' active' : '');
+      pill.className = 'bp-cat-pill' + (activeBpCat === c.key && !activeBpRolls ? ' active' : '');
       pill.style.setProperty('--pill-color', c.color || 'var(--accent)');
-      pill.onclick = () => { activeBpCat = c.key; buildPills(); buildGroupSelect(); };
+      pill.onclick = () => { activeBpCat = c.key; activeBpRolls = false; buildPills(); buildGroupSelect(); };
       pillsEl.appendChild(pill);
     });
+    // Synthetic ROLLS pill — groups where is5Can() is true, across all OT cats
+    const otbcKeys = cats.filter(c => ['OTBC','OTBC-ROLL','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key)).map(c => c.key);
+    const rollCount = [...new Set(data.filter(r => otbcKeys.includes(r.cat) && is5Can(r.item)).map(r => r.item))].length;
+    if (rollCount > 0) {
+      const rollPill = document.createElement('button');
+      rollPill.textContent = 'Rolls / 5-Can (' + rollCount + ')';
+      rollPill.className = 'bp-cat-pill' + (activeBpRolls ? ' active' : '');
+      rollPill.style.setProperty('--pill-color', 'var(--gold)');
+      rollPill.onclick = () => { activeBpCat = 'ALL'; activeBpRolls = true; buildPills(); buildGroupSelect(); };
+      pillsEl.appendChild(rollPill);
+    }
   }
 
   function buildGroupSelect() {
-    const filtered = activeBpCat === 'ALL'
-      ? data
-      : data.filter(r => r.cat === activeBpCat);
+    let filtered;
+    if (activeBpRolls) {
+      // Only roll groups across all OT cats
+      const otbcKeys = cats.filter(c => ['OTBC','OTBC-ROLL','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key)).map(c => c.key);
+      filtered = data.filter(r => otbcKeys.includes(r.cat) && is5Can(r.item));
+    } else {
+      filtered = activeBpCat === 'ALL' ? data : data.filter(r => r.cat === activeBpCat);
+    }
     const groups = [...new Set(filtered.map(r => r.item))].sort();
     const sel = document.getElementById('bp-group');
     sel.innerHTML = '<option value="">- Choose a group -</option>' +
@@ -2559,8 +2578,8 @@ let pusChanges = {}; // { groupName: { price: float|null, rebate: float|null } }
 
 function buildPriceSheet() {
   pusChanges = {};
-  document.getElementById('pus-changed-count').textContent = '0';
-  document.getElementById('pus-apply-btn').disabled = true;
+  const cntEl = document.getElementById('pus-changed-count');
+  if (cntEl) cntEl.textContent = '0';
 
   const cats = getCats();
   const co = companies[currentCompany];
@@ -2573,7 +2592,7 @@ function buildPriceSheet() {
   }
 
   // Build section HTML
-  function makeTable(groups, catColor, mult) {
+  function makeTable(groups, catColor, mult, section='other') {
     if (!groups.length) return '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>';
     let rows = '';
     groups.forEach((g, i) => {
@@ -2593,12 +2612,12 @@ function buildPriceSheet() {
         </td>
         <td class="pus-td-input">
           <input class="pus-price-input" type="number" step="0.01" min="0" placeholder="$${curPrice}"
-            data-group="${g}" data-field="price"
+            data-group="${g}" data-field="price" data-section="${section}"
             oninput="onPusInput(this)">
         </td>
         <td class="pus-td-input">
           <input class="pus-rebate-input" type="number" step="0.01" min="0" placeholder="$${curRebate}"
-            data-group="${g}" data-field="rebate"
+            data-group="${g}" data-field="rebate" data-section="${section}"
             oninput="onPusInput(this)">
         </td>
       </tr>`;
@@ -2616,12 +2635,11 @@ function buildPriceSheet() {
 
   let html = '';
 
-  // CIGARETTES section (CIGG + Carton side by side)
-  const ciggCat = cats.find(c => c.key === 'CIGG');
-  const ctnCat  = cats.find(c => c.key === 'Carton');
-  const ciggGrps = ciggCat ? groupsForCat('CIGG') : [];
-  const ctnGrps  = ctnCat  ? groupsForCat('Carton') : [];
-  // Only show if company has cigarettes
+  // 1. CIGARETTES — singles
+  const ciggGrps = cats.find(c => c.key === 'CIGG') ? groupsForCat('CIGG') : [];
+  // 2. CARTONS
+  const ctnGrps = cats.find(c => c.key === 'Carton') ? groupsForCat('Carton') : [];
+
   if (ciggGrps.length || ctnGrps.length) {
     html += `<div class="pus-section">
       <div class="pus-section-head">
@@ -2632,29 +2650,26 @@ function buildPriceSheet() {
       <div class="pus-sub-grid">
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--cigg)"></div> Singles (×1)</div>
-          ${ciggGrps.length ? makeTable(ciggGrps, 'var(--cigg)', 1) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${ciggGrps.length ? makeTable(ciggGrps,'var(--cigg)',1,'cigg') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:#c06010"></div> Cartons (×10)</div>
-          ${ctnGrps.length ? makeTable(ctnGrps, '#c06010', 10) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${ctnGrps.length ? makeTable(ctnGrps,'#c06010',10,'cigg') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
+      </div>
+      <div class="pus-section-footer">
+        <span class="pus-section-count" id="pus-count-cigg">0 changes</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearSection('cigg')">Clear</button>
+        <button class="btn btn-accent btn-sm" id="pus-btn-cigg" onclick="applyPriceSheet('cigg')" disabled>Apply Cigarettes</button>
       </div>
     </div>`;
   }
 
-  // OTHER TOBACCO section — split singles vs rolls across all OT-type cats
-  // Collect all OT cat keys for this company (OTBC, OTBC-ROLL, RJR Other Tobacco, ITG Other Tobacco)
+  // 3. OTHER TOBACCO — singles | rolls side by side
   const otbcCatKeys = cats
-    .filter(c => c.key === 'OTBC' || c.key === 'OTBC-ROLL' ||
-                 c.key === 'RJR Other Tobacco' || c.key === 'ITG Other Tobacco')
+    .filter(c => ['OTBC','OTBC-ROLL','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key))
     .map(c => c.key);
-
-  // All unique OT groups from any OT cat
-  const allOtbcGrps = [...new Set(
-    data.filter(r => otbcCatKeys.includes(r.cat)).map(r => r.item)
-  )].sort();
-
-  // Split by is5Can
+  const allOtbcGrps    = [...new Set(data.filter(r => otbcCatKeys.includes(r.cat)).map(r => r.item))].sort();
   const otbcSingleGrps = allOtbcGrps.filter(g => !is5Can(g));
   const otbcRollGrps   = allOtbcGrps.filter(g => is5Can(g));
 
@@ -2668,18 +2683,23 @@ function buildPriceSheet() {
       <div class="pus-sub-grid">
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--otbc)"></div> Singles (×1)</div>
-          ${otbcSingleGrps.length ? makeTable(otbcSingleGrps, 'var(--otbc)', 1) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${otbcSingleGrps.length ? makeTable(otbcSingleGrps,'var(--otbc)',1,'otbc') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--gold)"></div> Rolls / 5-Can (×5)</div>
-          ${otbcRollGrps.length ? makeTable(otbcRollGrps, 'var(--gold)', 5) : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${otbcRollGrps.length ? makeTable(otbcRollGrps,'var(--gold)',5,'otbc') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
+      </div>
+      <div class="pus-section-footer">
+        <span class="pus-section-count" id="pus-count-otbc">0 changes</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearSection('otbc')">Clear</button>
+        <button class="btn btn-accent btn-sm" id="pus-btn-otbc" onclick="applyPriceSheet('otbc')" disabled>Apply Other Tobacco</button>
       </div>
     </div>`;
   }
 
-  // VAPES section (full width)
-  const vapesCat = cats.find(c => c.key === 'Vapes' || c.key === 'RJR-Vapes');
+  // 4. VAPES
+  const vapesCat  = cats.find(c => c.key === 'Vapes' || c.key === 'RJR-Vapes');
   const vapesGrps = vapesCat ? groupsForCat(vapesCat.key) : [];
   if (vapesGrps.length) {
     html += `<div class="pus-section">
@@ -2689,28 +2709,31 @@ function buildPriceSheet() {
         <span class="pus-badge" style="background:var(--blue)">VAPES</span>
         <span style="font-size:0.52rem;color:var(--blue);margin-left:4px;">★ Fill only if there are vape updates</span>
       </div>
-      <div class="pus-sub-grid pus-full">
-        <div class="pus-sub" style="grid-column:1/-1">
-          ${makeTable(vapesGrps, 'var(--blue)', 1)}
-        </div>
+      ${makeTable(vapesGrps,'var(--blue)',1,'vapes')}
+      <div class="pus-section-footer">
+        <span class="pus-section-count" id="pus-count-vapes">0 changes</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearSection('vapes')">Clear</button>
+        <button class="btn btn-accent btn-sm" id="pus-btn-vapes" onclick="applyPriceSheet('vapes')" disabled>Apply Vapes</button>
       </div>
     </div>`;
   }
 
-  // ARA / CANDY — generic cats
-  const otherCats = cats.filter(c => !['CIGG','Carton','OTBC','OTBC-ROLL','Vapes','RJR-Vapes','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key) && !otbcCatKeys.includes(c.key));
-  otherCats.forEach(c => {
+  // 5. ARA / CANDY — any remaining cats
+  const otherCats = cats.filter(c => !['CIGG','Carton','OTBC','OTBC-ROLL','Vapes','RJR-Vapes','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key));
+  otherCats.forEach((c, idx) => {
     const grps = groupsForCat(c.key);
     if (!grps.length) return;
+    const secId = 'other_' + idx;
     html += `<div class="pus-section">
       <div class="pus-section-head">
         <div class="pus-dot" style="background:${c.color}"></div>
         <div class="pus-title" style="color:${c.color}">${c.label}</div>
       </div>
-      <div class="pus-sub-grid pus-full">
-        <div class="pus-sub" style="grid-column:1/-1">
-          ${makeTable(grps, c.color, 1)}
-        </div>
+      ${makeTable(grps, c.color, 1, secId)}
+      <div class="pus-section-footer">
+        <span class="pus-section-count" id="pus-count-${secId}">0 changes</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearSection('${secId}')">Clear</button>
+        <button class="btn btn-accent btn-sm" id="pus-btn-${secId}" onclick="applyPriceSheet('${secId}')" disabled>Apply ${c.label}</button>
       </div>
     </div>`;
   });
@@ -2721,9 +2744,10 @@ function buildPriceSheet() {
 function onPusInput(el) {
   const group = el.dataset.group;
   const field = el.dataset.field;
+  const section = el.dataset.section;
   const val = el.value.trim();
 
-  if (!pusChanges[group]) pusChanges[group] = { price: null, rebate: null };
+  if (!pusChanges[group]) pusChanges[group] = { price: null, rebate: null, section };
   pusChanges[group][field] = val !== '' ? parseFloat(val) : null;
 
   // Highlight row
@@ -2733,17 +2757,65 @@ function onPusInput(el) {
     row.classList.toggle('pus-row-changed', hasChange);
   }
 
-  // Count dirty groups
-  const changed = Object.values(pusChanges).filter(v => v.price !== null || v.rebate !== null).length;
-  document.getElementById('pus-changed-count').textContent = changed;
-  document.getElementById('pus-apply-btn').disabled = changed === 0;
+  // Count per section
+  const sectionChanges = (sec) => Object.values(pusChanges).filter(v => v.section === sec && (v.price !== null || v.rebate !== null)).length;
+  const total = Object.values(pusChanges).filter(v => v.price !== null || v.rebate !== null).length;
+
+  document.getElementById('pus-changed-count').textContent = total;
+  // Update counters for all known sections (static + dynamic other_N)
+  const allSecs = [...new Set(['cigg','otbc','vapes',
+    ...Object.values(pusChanges).map(v => v.section).filter(Boolean)])];
+  allSecs.forEach(sec => {
+    const cnt = sectionChanges(sec);
+    const countEl = document.getElementById('pus-count-' + sec);
+    const btnEl   = document.getElementById('pus-btn-'   + sec);
+    if (countEl) countEl.innerHTML = cnt > 0 ? `<strong>${cnt}</strong> group${cnt>1?'s':''} changed` : '0 changes';
+    if (btnEl)   btnEl.disabled = cnt === 0;
+  });
 }
 
-function applyPriceSheet() {
+function clearSection(sec) {
+  document.querySelectorAll(`[data-section="${sec}"]`).forEach(el => { el.value = ''; });
+  Object.keys(pusChanges).forEach(g => { if (pusChanges[g].section === sec) delete pusChanges[g]; });
+  // Remove row highlights
+  document.querySelectorAll(`[data-section="${sec}"]`).forEach(el => {
+    const row = document.getElementById('pus-row-' + CSS.escape(el.dataset.group));
+    if (row) row.classList.remove('pus-row-changed');
+  });
+  // Recount directly — no fake element
+  const total = Object.values(pusChanges).filter(v => v.price !== null || v.rebate !== null).length;
+  const cntEl = document.getElementById('pus-changed-count');
+  if (cntEl) cntEl.textContent = total;
+  const secCntEl = document.getElementById('pus-count-' + sec);
+  const secBtnEl = document.getElementById('pus-btn-' + sec);
+  if (secCntEl) secCntEl.textContent = '0 changes';
+  if (secBtnEl) secBtnEl.disabled = true;
+}
+
+function applyPriceSheet(section) {
   let totalChanged = 0;
   const log = [];
 
-  Object.entries(pusChanges).forEach(([group, changes]) => {
+  // BUG7 FIX: prevent double-cascade when user edits both Singles AND Cartons for same group
+  // Collect all groups being applied in this section
+  const appliedGroups = Object.entries(pusChanges)
+    .filter(([g,v]) => (!section || v.section === section) && (v.price !== null || v.rebate !== null))
+    .map(([g]) => g);
+  // Build skip set: skip carton entries whose single partner is also being applied
+  const skipGroups = new Set();
+  appliedGroups.forEach(g => {
+    if (isCarton(g)) {
+      const sgl = findSingleFromCarton(g);
+      if (sgl && appliedGroups.includes(sgl)) skipGroups.add(g); // single will cascade to carton
+    }
+    if (is5Can(g)) {
+      const sgl = findSinglePartner(g);
+      if (sgl && appliedGroups.includes(sgl)) skipGroups.add(g); // single will cascade to roll
+    }
+  });
+
+  Object.entries(pusChanges).filter(([g,v]) => !section || v.section === section).forEach(([group, changes]) => {
+    if (skipGroups.has(group)) return; // skip — handled by cascade from single
     const { price: newBase, rebate: newRebate } = changes;
     if (newBase === null && newRebate === null) return;
     if (newBase !== null && isNaN(newBase)) return;
@@ -2778,13 +2850,30 @@ function applyPriceSheet() {
     log.push(group);
   });
 
-  if (!totalChanged) { showToast('No valid changes to apply'); return; }
+  if (!totalChanged) { toast('No valid changes to apply'); return; }
 
   companies[currentCompany].data = data;
-  closeBulkModal();
   saveToStorage();
   render();
-  toast(`✓ Price sheet applied — ${totalChanged} items updated across ${log.length} groups`);
+  // Clear applied section from pusChanges and inputs
+  if (section) {
+    document.querySelectorAll(`[data-section="${section}"]`).forEach(el => { el.value = ''; });
+    Object.keys(pusChanges).forEach(g => { if (pusChanges[g].section === section) delete pusChanges[g]; });
+    // Recount
+    const total = Object.values(pusChanges).filter(v => v.price !== null || v.rebate !== null).length;
+    document.getElementById('pus-changed-count').textContent = total;
+    const secBtn = document.getElementById('pus-btn-' + section);
+    const secCnt = document.getElementById('pus-count-' + section);
+    if (secBtn) secBtn.disabled = true;
+    if (secCnt) secCnt.textContent = '0 changes';
+    // Remove highlight from rows
+    document.querySelectorAll('[data-section="' + section + '"]').forEach(el => {
+      const row = document.getElementById('pus-row-' + CSS.escape(el.dataset.group));
+      if (row) row.classList.remove('pus-row-changed');
+    });
+  }
+  const sectionLabel = section === 'cigg' ? 'Cigarettes' : section === 'otbc' ? 'Other Tobacco' : section === 'vapes' ? 'Vapes' : 'All';
+  toast(`✓ ${sectionLabel} prices applied — ${totalChanged} items updated across ${log.length} groups`);
 }
 
 function onGroupChange() {
