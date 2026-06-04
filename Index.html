@@ -2583,25 +2583,44 @@ function buildPriceSheet() {
 
   const cats = getCats();
   const co = companies[currentCompany];
+  // Use global `data` — it is always synced to current company by switchCompany/loadFromStorage
+  // Fall back to co.data if global data is empty
+  const coData = (data && data.length > 0) ? data : co.data;
   const wrap = document.getElementById('pus-wrap');
   if (!wrap) return;
 
-  // Get unique groups per cat key
+  // Get unique groups per cat key — exclude blank/numeric-only group names
   function groupsForCat(catKey) {
-    return [...new Set(data.filter(r => r.cat === catKey).map(r => r.item))].sort();
+    return [...new Set(
+      coData.filter(r => r.cat === catKey && r.item && isNaN(r.item) && String(r.item).trim() !== '')
+            .map(r => r.item)
+    )].sort();
   }
 
   // Build section HTML
-  function makeTable(groups, catColor, mult, section='other') {
+  function makeTable(groups, catColor, mult, section='other', column='single') {
     if (!groups.length) return '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>';
     let rows = '';
     groups.forEach((g, i) => {
-      // Get representative item (first one)
-      const items = data.filter(r => r.item === g);
-      const base = items[0];
-      const curPrice = base ? (base.price / getMultiplier(g)).toFixed(2) : '';
-      const curRebate = base ? (base.rebate / getMultiplier(g)).toFixed(2) : '';
-      rows += `<tr class="pus-data-row" id="pus-row-${CSS.escape(g)}">
+      // Get representative item matching the correct cat for this column
+      // Pick the right representative item for this column
+      const allGroupItems = coData.filter(r => r.item === g);
+      let base;
+      if (column === 'carton') {
+        base = allGroupItems.find(r => (r.cat||'').toLowerCase() === 'carton')
+            || allGroupItems.find(r => (r.cat||'').toLowerCase().includes('carton'))
+            || allGroupItems[0];
+      } else if (column === 'roll') {
+        base = allGroupItems.find(r => is5Can(r.item)) || allGroupItems[0];
+      } else {
+        base = allGroupItems.find(r => !(r.cat||'').toLowerCase().includes('carton')) || allGroupItems[0];
+      }
+      // Carton/roll columns show the actual stored price (carton price, roll price)
+      // Single column shows the per-unit price
+      // User types what they see in the placeholder — carton types carton price, single types single price
+      const curPrice  = base ? base.price.toFixed(2)  : '';
+      const curRebate = base ? base.rebate.toFixed(2) : '';
+      rows += `<tr class="pus-data-row" id="pus-row-${CSS.escape(g)}-${column}">
         <td class="pus-td-sno">${i+1}</td>
         <td class="pus-td-group">
           <div class="pus-td-group-inner">
@@ -2612,12 +2631,12 @@ function buildPriceSheet() {
         </td>
         <td class="pus-td-input">
           <input class="pus-price-input" type="number" step="0.01" min="0" placeholder="$${curPrice}"
-            data-group="${g}" data-field="price" data-section="${section}"
+            data-group="${g}" data-field="price" data-section="${section}" data-column="${column}"
             oninput="onPusInput(this)">
         </td>
         <td class="pus-td-input">
           <input class="pus-rebate-input" type="number" step="0.01" min="0" placeholder="$${curRebate}"
-            data-group="${g}" data-field="rebate" data-section="${section}"
+            data-group="${g}" data-field="rebate" data-section="${section}" data-column="${column}"
             oninput="onPusInput(this)">
         </td>
       </tr>`;
@@ -2650,11 +2669,11 @@ function buildPriceSheet() {
       <div class="pus-sub-grid">
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--cigg)"></div> Singles (×1)</div>
-          ${ciggGrps.length ? makeTable(ciggGrps,'var(--cigg)',1,'cigg') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${ciggGrps.length ? makeTable(ciggGrps,'var(--cigg)',1,'cigg','single') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:#c06010"></div> Cartons (×10)</div>
-          ${ctnGrps.length ? makeTable(ctnGrps,'#c06010',10,'cigg') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${ctnGrps.length ? makeTable(ctnGrps,'#c06010',10,'cigg','carton') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
       </div>
       <div class="pus-section-footer">
@@ -2669,7 +2688,7 @@ function buildPriceSheet() {
   const otbcCatKeys = cats
     .filter(c => ['OTBC','OTBC-ROLL','RJR Other Tobacco','ITG Other Tobacco'].includes(c.key))
     .map(c => c.key);
-  const allOtbcGrps    = [...new Set(data.filter(r => otbcCatKeys.includes(r.cat)).map(r => r.item))].sort();
+  const allOtbcGrps    = [...new Set(coData.filter(r => otbcCatKeys.includes(r.cat) && r.item && isNaN(r.item) && String(r.item).trim() !== '').map(r => r.item))].sort();
   const otbcSingleGrps = allOtbcGrps.filter(g => !is5Can(g));
   const otbcRollGrps   = allOtbcGrps.filter(g => is5Can(g));
 
@@ -2683,11 +2702,11 @@ function buildPriceSheet() {
       <div class="pus-sub-grid">
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--otbc)"></div> Singles (×1)</div>
-          ${otbcSingleGrps.length ? makeTable(otbcSingleGrps,'var(--otbc)',1,'otbc') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${otbcSingleGrps.length ? makeTable(otbcSingleGrps,'var(--otbc)',1,'otbc','single') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
         <div class="pus-sub">
           <div class="pus-sub-head"><div class="pus-sub-dot" style="background:var(--gold)"></div> Rolls / 5-Can (×5)</div>
-          ${otbcRollGrps.length ? makeTable(otbcRollGrps,'var(--gold)',5,'otbc') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
+          ${otbcRollGrps.length ? makeTable(otbcRollGrps,'var(--gold)',5,'otbc','roll') : '<div style="padding:8px 12px;font-size:0.6rem;color:var(--ink3);font-style:italic;">No items</div>'}
         </div>
       </div>
       <div class="pus-section-footer">
@@ -2709,7 +2728,7 @@ function buildPriceSheet() {
         <span class="pus-badge" style="background:var(--blue)">VAPES</span>
         <span style="font-size:0.52rem;color:var(--blue);margin-left:4px;">★ Fill only if there are vape updates</span>
       </div>
-      ${makeTable(vapesGrps,'var(--blue)',1,'vapes')}
+      ${makeTable(vapesGrps,'var(--blue)',1,'vapes','single')}
       <div class="pus-section-footer">
         <span class="pus-section-count" id="pus-count-vapes">0 changes</span>
         <button class="btn btn-ghost btn-sm" onclick="clearSection('vapes')">Clear</button>
@@ -2742,16 +2761,91 @@ function buildPriceSheet() {
 }
 
 function onPusInput(el) {
-  const group = el.dataset.group;
-  const field = el.dataset.field;
+  const group   = el.dataset.group;
+  const field   = el.dataset.field;
   const section = el.dataset.section;
-  const val = el.value.trim();
+  const column  = el.dataset.column || 'single';
+  const val     = el.value.trim();
 
-  if (!pusChanges[group]) pusChanges[group] = { price: null, rebate: null, section };
+  if (!pusChanges[group]) pusChanges[group] = { price: null, rebate: null, section, column };
   pusChanges[group][field] = val !== '' ? parseFloat(val) : null;
 
+  // ── Live cascade: fill partner inputs instantly ──────────
+  function fillPartnerInput(partnerGroup, partnerCol, priceVal, rebateVal) {
+    if (!partnerGroup) return;
+    const row = document.getElementById('pus-row-' + CSS.escape(partnerGroup) + '-' + partnerCol);
+    if (!row) return;
+    const priceInput  = row.querySelector(`input[data-field="price"][data-column="${partnerCol}"]`);
+    const rebateInput = row.querySelector(`input[data-field="rebate"][data-column="${partnerCol}"]`);
+    if (priceInput  && priceVal  !== null) {
+      priceInput.value = priceVal;
+      // Store in pusChanges so Apply works too
+      if (!pusChanges[partnerGroup]) pusChanges[partnerGroup] = { price: null, rebate: null, section: priceInput.dataset.section, column: partnerCol };
+      pusChanges[partnerGroup].price = parseFloat(priceVal);
+      row.classList.add('pus-row-changed');
+    }
+    if (rebateInput && rebateVal !== null) {
+      rebateInput.value = rebateVal;
+      if (!pusChanges[partnerGroup]) pusChanges[partnerGroup] = { price: null, rebate: null, section: rebateInput.dataset.section, column: partnerCol };
+      pusChanges[partnerGroup].rebate = parseFloat(rebateVal);
+    }
+  }
+
+  const numVal = parseFloat(val);
+  if (!isNaN(numVal) && val !== '') {
+    const singleItems = data.filter(r => r.item === group && !(r.cat||'').toLowerCase().includes('carton'));
+    const singleCat   = singleItems[0]?.cat || '';
+    const isOtbcGrp   = singleCat.toUpperCase().includes('OTBC') || singleCat.toLowerCase().includes('other tobacco');
+    const ctnMult     = isOtbcGrp ? 5 : 10;
+
+    if (column === 'single') {
+      // Single typed → fill carton input with ×10, roll input with ×5
+      if (field === 'price') {
+        fillPartnerInput(findCartonPartner(group), 'carton', (numVal * ctnMult).toFixed(2), null);
+        fillPartnerInput(find5CanPartner(group),   'roll',   (numVal * 5).toFixed(2), null);
+      } else if (field === 'rebate') {
+        fillPartnerInput(findCartonPartner(group), 'carton', null, (numVal * ctnMult).toFixed(2));
+        fillPartnerInput(find5CanPartner(group),   'roll',   null, (numVal * 5).toFixed(2));
+      }
+    } else if (column === 'carton') {
+      // Carton typed → fill single input with ÷10
+      if (field === 'price') {
+        fillPartnerInput(findSingleFromCarton(group), 'single', (numVal / ctnMult).toFixed(2), null);
+      } else if (field === 'rebate') {
+        fillPartnerInput(findSingleFromCarton(group), 'single', null, (numVal / ctnMult).toFixed(2));
+      }
+    } else if (column === 'roll') {
+      // Roll typed → fill single input with ÷5
+      if (field === 'price') {
+        fillPartnerInput(findSinglePartner(group), 'single', (numVal / 5).toFixed(2), null);
+      } else if (field === 'rebate') {
+        fillPartnerInput(findSinglePartner(group), 'single', null, (numVal / 5).toFixed(2));
+      }
+    }
+  } else if (val === '') {
+    // User cleared — clear partner inputs too
+    function clearPartner(partnerGroup, partnerCol) {
+      if (!partnerGroup) return;
+      const row = document.getElementById('pus-row-' + CSS.escape(partnerGroup) + '-' + partnerCol);
+      if (!row) return;
+      const inp = row.querySelector(`input[data-field="${field}"][data-column="${partnerCol}"]`);
+      if (inp) { inp.value = ''; }
+      if (pusChanges[partnerGroup]) pusChanges[partnerGroup][field] = null;
+      const hasAny = pusChanges[partnerGroup] && (pusChanges[partnerGroup].price !== null || pusChanges[partnerGroup].rebate !== null);
+      if (!hasAny) row.classList.remove('pus-row-changed');
+    }
+    if (column === 'single') {
+      clearPartner(findCartonPartner(group), 'carton');
+      clearPartner(find5CanPartner(group),   'roll');
+    } else if (column === 'carton') {
+      clearPartner(findSingleFromCarton(group), 'single');
+    } else if (column === 'roll') {
+      clearPartner(findSinglePartner(group), 'single');
+    }
+  }
+
   // Highlight row
-  const row = document.getElementById('pus-row-' + CSS.escape(group));
+  const row = document.getElementById('pus-row-' + CSS.escape(group) + '-' + column);
   if (row) {
     const hasChange = pusChanges[group].price !== null || pusChanges[group].rebate !== null;
     row.classList.toggle('pus-row-changed', hasChange);
@@ -2821,20 +2915,90 @@ function applyPriceSheet(section) {
     if (newBase !== null && isNaN(newBase)) return;
     if (newRebate !== null && isNaN(newRebate)) return;
 
-    const selfMult   = getMultiplier(group);
-    const partner5   = (!is5Can(group) && !isCarton(group)) ? find5CanPartner(group)   : null;
-    const partnerCtn = (!is5Can(group) && !isCarton(group)) ? findCartonPartner(group) : null;
-    const partnerSgl = is5Can(group) ? findSinglePartner(group) : isCarton(group) ? findSingleFromCarton(group) : null;
+    const col = changes.column || 'single';
+
+    // User ALWAYS types per-unit (single) price.
+    // Rule: single stored = newBase×1, carton stored = newBase×10, roll stored = newBase×5
 
     const singleItems = data.filter(r => r.item === group && !(r.cat||'').toLowerCase().includes('carton'));
-    const singleCat   = singleItems[0]?.cat || '';
+    const singleCat   = singleItems[0]?.cat || data.find(r => r.item === group)?.cat || '';
     const isOtbcGrp   = singleCat.toUpperCase().includes('OTBC') || singleCat.toLowerCase().includes('other tobacco');
     const cartonMult  = isOtbcGrp ? 5 : 10;
 
-    const affectedGroups = [{ name: group, mult: selfMult }];
-    if (partner5)   affectedGroups.push({ name: partner5,   mult: 5 });
-    if (partnerCtn) affectedGroups.push({ name: partnerCtn, mult: cartonMult });
-    if (partnerSgl) affectedGroups.push({ name: partnerSgl, mult: 1 });
+    const affectedGroups = [];
+    if (col === 'single') {
+      const partnerCtn = findCartonPartner(group);
+      const partner5   = find5CanPartner(group);
+      // single stored = newBase×1, carton stored = newBase×10, roll stored = newBase×5
+      affectedGroups.push({ name: group, mult: 1 });
+      if (partnerCtn) affectedGroups.push({ name: partnerCtn, mult: cartonMult });
+      if (partner5)   affectedGroups.push({ name: partner5,   mult: 5 });
+    } else if (col === 'carton') {
+      // User typed carton price (e.g. $80). Single = cartonPrice / 10.
+      // We store prices as actual values, so:
+      // carton stored = newBase (what user typed, already the full carton price)
+      // single stored = newBase / cartonMult
+      const partnerSgl = findSingleFromCarton(group);
+      const cartonPrice = newBase;
+      const singlePrice = newBase !== null ? +(newBase / cartonMult).toFixed(2) : null;
+      const cartonRebate = newRebate;
+      const singleRebate = newRebate !== null ? +(newRebate / cartonMult).toFixed(2) : null;
+
+      // Apply carton directly
+      data = data.map(r => {
+        if (r.item !== group) return r;
+        const offAmt = parseOffs(r.offs);
+        const updatedPrice  = cartonPrice  !== null ? Math.max(0, +(cartonPrice  - offAmt).toFixed(2)) : r.price;
+        const updatedRebate = cartonRebate !== null ? +cartonRebate.toFixed(2) : r.rebate;
+        totalChanged++;
+        companies[currentCompany]._changed.add(r.id);
+        return { ...r, price: updatedPrice, rebate: updatedRebate };
+      });
+      // Apply single
+      if (partnerSgl) {
+        data = data.map(r => {
+          if (r.item !== partnerSgl || (r.cat||'').toLowerCase().includes('carton')) return r;
+          const offAmt = parseOffs(r.offs);
+          const updatedPrice  = singlePrice  !== null ? Math.max(0, +(singlePrice  - offAmt).toFixed(2)) : r.price;
+          const updatedRebate = singleRebate !== null ? +singleRebate.toFixed(2) : r.rebate;
+          totalChanged++;
+          companies[currentCompany]._changed.add(r.id);
+          return { ...r, price: updatedPrice, rebate: updatedRebate };
+        });
+      }
+      log.push(group);
+      return; // handled manually above, skip the generic data.map below
+    } else if (col === 'roll') {
+      // User typed roll price (e.g. $40). Single = rollPrice / 5.
+      const partnerSgl = findSinglePartner(group);
+      const rollPrice  = newBase;
+      const singlePrice  = newBase  !== null ? +(newBase  / 5).toFixed(2) : null;
+      const rollRebate   = newRebate;
+      const singleRebate = newRebate !== null ? +(newRebate / 5).toFixed(2) : null;
+
+      data = data.map(r => {
+        if (r.item !== group) return r;
+        const offAmt = parseOffs(r.offs);
+        const updatedPrice  = rollPrice  !== null ? Math.max(0, +(rollPrice  - offAmt).toFixed(2)) : r.price;
+        const updatedRebate = rollRebate !== null ? +rollRebate.toFixed(2) : r.rebate;
+        totalChanged++;
+        companies[currentCompany]._changed.add(r.id);
+        return { ...r, price: updatedPrice, rebate: updatedRebate };
+      });
+      if (partnerSgl) {
+        data = data.map(r => {
+          if (r.item !== partnerSgl || is5Can(r.item)) return r;
+          const offAmt = parseOffs(r.offs);
+          const updatedPrice  = singlePrice  !== null ? Math.max(0, +(singlePrice  - offAmt).toFixed(2)) : r.price;
+          const updatedRebate = singleRebate !== null ? +singleRebate.toFixed(2) : r.rebate;
+          totalChanged++;
+          companies[currentCompany]._changed.add(r.id);
+          return { ...r, price: updatedPrice, rebate: updatedRebate };
+        });
+      }
+      log.push(group);
+      return;
+    }
 
     data = data.map(r => {
       const ag = affectedGroups.find(g => g.name === r.item);
