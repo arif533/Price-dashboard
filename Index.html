@@ -2890,21 +2890,21 @@ function applyPriceSheet(section) {
   let totalChanged = 0;
   const log = [];
 
-  // BUG7 FIX: prevent double-cascade when user edits both Singles AND Cartons for same group
-  // Collect all groups being applied in this section
-  const appliedGroups = Object.entries(pusChanges)
-    .filter(([g,v]) => (!section || v.section === section) && (v.price !== null || v.rebate !== null))
-    .map(([g]) => g);
-  // Build skip set: skip carton entries whose single partner is also being applied
+  // Prevent double-cascade: if user edited BOTH singles AND cartons for same group,
+  // skip the carton/roll entry — the single will cascade to it
   const skipGroups = new Set();
   appliedGroups.forEach(g => {
-    if (isCarton(g)) {
+    const v = pusChanges[g];
+    if (!v) return;
+    // Only skip if this entry was typed in the carton/roll column
+    // AND the single for the same group is also being applied
+    if (v.column === 'carton') {
       const sgl = findSingleFromCarton(g);
-      if (sgl && appliedGroups.includes(sgl)) skipGroups.add(g); // single will cascade to carton
+      if (sgl && appliedGroups.includes(sgl) && pusChanges[sgl]?.column === 'single') skipGroups.add(g);
     }
-    if (is5Can(g)) {
+    if (v.column === 'roll') {
       const sgl = findSinglePartner(g);
-      if (sgl && appliedGroups.includes(sgl)) skipGroups.add(g); // single will cascade to roll
+      if (sgl && appliedGroups.includes(sgl) && pusChanges[sgl]?.column === 'single') skipGroups.add(g);
     }
   });
 
@@ -2929,10 +2929,48 @@ function applyPriceSheet(section) {
     if (col === 'single') {
       const partnerCtn = findCartonPartner(group);
       const partner5   = find5CanPartner(group);
-      // single stored = newBase×1, carton stored = newBase×10, roll stored = newBase×5
-      affectedGroups.push({ name: group, mult: 1 });
-      if (partnerCtn) affectedGroups.push({ name: partnerCtn, mult: cartonMult });
-      if (partner5)   affectedGroups.push({ name: partner5,   mult: 5 });
+
+      // Apply single records (non-carton) for this group at mult:1
+      data = data.map(r => {
+        if (r.item !== group) return r;
+        if ((r.cat||'').toLowerCase().includes('carton')) return r; // skip carton records
+        const offAmt = parseOffs(r.offs);
+        const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * 1) - offAmt).toFixed(2)) : r.price;
+        const updatedRebate = newRebate !== null ? +(newRebate * 1).toFixed(2) : r.rebate;
+        totalChanged++;
+        companies[currentCompany]._changed.add(r.id);
+        return { ...r, price: updatedPrice, rebate: updatedRebate };
+      });
+
+      // Apply carton partner at mult:cartonMult
+      if (partnerCtn) {
+        data = data.map(r => {
+          if (r.item !== partnerCtn) return r;
+          if (!(r.cat||'').toLowerCase().includes('carton')) return r; // only carton records
+          const offAmt = parseOffs(r.offs);
+          const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * cartonMult) - offAmt).toFixed(2)) : r.price;
+          const updatedRebate = newRebate !== null ? +(newRebate * cartonMult).toFixed(2) : r.rebate;
+          totalChanged++;
+          companies[currentCompany]._changed.add(r.id);
+          return { ...r, price: updatedPrice, rebate: updatedRebate };
+        });
+      }
+
+      // Apply roll partner at mult:5
+      if (partner5) {
+        data = data.map(r => {
+          if (r.item !== partner5) return r;
+          const offAmt = parseOffs(r.offs);
+          const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * 5) - offAmt).toFixed(2)) : r.price;
+          const updatedRebate = newRebate !== null ? +(newRebate * 5).toFixed(2) : r.rebate;
+          totalChanged++;
+          companies[currentCompany]._changed.add(r.id);
+          return { ...r, price: updatedPrice, rebate: updatedRebate };
+        });
+      }
+
+      log.push(group);
+      return; // handled above, skip generic data.map
     } else if (col === 'carton') {
       // User typed carton price (e.g. $80). Single = cartonPrice / 10.
       // We store prices as actual values, so:
@@ -3004,8 +3042,16 @@ function applyPriceSheet(section) {
       const ag = affectedGroups.find(g => g.name === r.item);
       if (!ag) return r;
       const offAmt = parseOffs(r.offs);
-      const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * ag.mult) - offAmt).toFixed(2)) : r.price;
-      const updatedRebate = newRebate !== null ? +(newRebate * ag.mult).toFixed(2) : r.rebate;
+      // For the edited group itself (col==='single'), CIGG records get mult:1
+      // but Carton records with same name must get cartonMult — they are the partner
+      let mult = ag.mult;
+      if (col === 'single' && r.item === group) {
+        // Only update the CIGG (non-carton) records for the single group itself
+        if ((r.cat||'').toLowerCase().includes('carton')) return r;
+        mult = 1;
+      }
+      const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase * mult) - offAmt).toFixed(2)) : r.price;
+      const updatedRebate = newRebate !== null ? +(newRebate * mult).toFixed(2) : r.rebate;
       totalChanged++;
       companies[currentCompany]._changed.add(r.id);
       return { ...r, price: updatedPrice, rebate: updatedRebate };
@@ -3030,14 +3076,11 @@ function applyPriceSheet(section) {
     const secCnt = document.getElementById('pus-count-' + section);
     if (secBtn) secBtn.disabled = true;
     if (secCnt) secCnt.textContent = '0 changes';
-    // Remove highlight from rows
-    document.querySelectorAll('[data-section="' + section + '"]').forEach(el => {
-      const row = document.getElementById('pus-row-' + CSS.escape(el.dataset.group));
-      if (row) row.classList.remove('pus-row-changed');
-    });
   }
   const sectionLabel = section === 'cigg' ? 'Cigarettes' : section === 'otbc' ? 'Other Tobacco' : section === 'vapes' ? 'Vapes' : 'All';
   toast(`✓ ${sectionLabel} prices applied — ${totalChanged} items updated across ${log.length} groups`);
+  // Rebuild sheet so cur: prices refresh to new values
+  buildPriceSheet();
 }
 
 function onGroupChange() {
@@ -6749,6 +6792,20 @@ function showFbStatus(state) {
   }
 }
 
+
+function repairCiggPrices(data) {
+  return data.map(r => {
+    // CIGG single should never exceed $25 — if so, was multiplied by 10 by bug
+    if (r.cat === 'CIGG' && r.price > 25) {
+      return { ...r, price: +(r.price / 10).toFixed(2), rebate: +(r.rebate / 10).toFixed(2) };
+    }
+    // Carton should never exceed $200 — if so, was multiplied by 10 by bug
+    if (r.cat === 'Carton' && r.price > 200) {
+      return { ...r, price: +(r.price / 10).toFixed(2), rebate: +(r.rebate / 10).toFixed(2) };
+    }
+    return r;
+  });
+}
 function applyFirebaseSnapshot(fbData) {
   // Called when real-time listener gets update from another device
   // Stale-data guard: skip if Firebase has fewer items than built-in
@@ -6770,7 +6827,15 @@ function applyFirebaseSnapshot(fbData) {
   let changed = false;
   Object.keys(companies).forEach(co => {
     if (fbData[co] && Array.isArray(fbData[co].data) && fbData[co].data.length > 0) {
-      companies[co].data   = fbData[co].data;
+      // Sanity repair: fix prices corrupted by ×10 bug
+      const repaired = fbData[co].data.map(r => {
+        if (r.cat === 'CIGG' && r.price > 25)
+          return { ...r, price: +(r.price / 10).toFixed(2), rebate: +(r.rebate / 10).toFixed(2) };
+        if (r.cat === 'Carton' && r.price > 200)
+          return { ...r, price: +(r.price / 10).toFixed(2), rebate: +(r.rebate / 10).toFixed(2) };
+        return r;
+      });
+      companies[co].data   = repaired;
       companies[co].nextId = fbData[co].nextId || companies[co].nextId;
       companies[co]._changed = new Set(fbData[co]._changed || []);
       changed = true;
@@ -6955,7 +7020,7 @@ async function loadFromFirebase() {
 
     Object.keys(companies).forEach(co => {
       if (fbData[co] && Array.isArray(fbData[co].data) && fbData[co].data.length > 0) {
-        companies[co].data    = fbData[co].data;
+        companies[co].data    = repairCiggPrices(fbData[co].data);
         companies[co].nextId  = fbData[co].nextId || companies[co].nextId;
         companies[co]._changed = new Set(fbData[co]._changed || []);
       }
@@ -7650,7 +7715,7 @@ function admTestFirebase() {
     if (el) { el.textContent = '✗ Not Configured'; el.style.background='rgba(232,40,90,0.1)'; el.style.color='#e8285a'; }
     return;
   }
-  const testRef = window.fbRef(window.fbDb, '.info/connected');
+  const testRef = window.fbRef(window.fbDb, 'dashboard');
   window.fbGet(testRef).then(snap => {
     toast('✓ Firebase connected successfully!');
     const el = document.getElementById('fbAdminStatus');
@@ -7708,7 +7773,7 @@ function admForceSyncFromFirebase() {
       let total = 0;
       Object.keys(companies).forEach(co => {
         if (fbData[co] && Array.isArray(fbData[co].data) && fbData[co].data.length > 0) {
-          companies[co].data    = fbData[co].data;
+          companies[co].data    = repairCiggPrices(fbData[co].data);
           companies[co].nextId  = fbData[co].nextId || companies[co].nextId;
           companies[co]._changed = new Set(fbData[co]._changed || []);
           total += fbData[co].data.length;
