@@ -2890,6 +2890,11 @@ function applyPriceSheet(section) {
   let totalChanged = 0;
   const log = [];
 
+  // Collect all groups being applied in this section
+  const appliedGroups = Object.entries(pusChanges)
+    .filter(([g,v]) => (!section || v.section === section) && (v.price !== null || v.rebate !== null))
+    .map(([g]) => g);
+
   // Prevent double-cascade: if user edited BOTH singles AND cartons for same group,
   // skip the carton/roll entry — the single will cascade to it
   const skipGroups = new Set();
@@ -2917,7 +2922,20 @@ function applyPriceSheet(section) {
 
     const col = changes.column || 'single';
 
-    // User ALWAYS types per-unit (single) price.
+    // For ARA/CANDY flat items (section starts with 'other_') — no cascade needed, direct update
+    if (changes.section && changes.section.startsWith('other_')) {
+      data = data.map(r => {
+        if (r.item !== group) return r;
+        const offAmt = parseOffs(r.offs);
+        const updatedPrice  = newBase   !== null ? Math.max(0, +((newBase) - offAmt).toFixed(2)) : r.price;
+        const updatedRebate = newRebate !== null ? +newRebate.toFixed(2) : r.rebate;
+        totalChanged++;
+        companies[currentCompany]._changed.add(r.id);
+        return { ...r, price: updatedPrice, rebate: updatedRebate };
+      });
+      log.push(group);
+      return;
+    }
     // Rule: single stored = newBase×1, carton stored = newBase×10, roll stored = newBase×5
 
     const singleItems = data.filter(r => r.item === group && !(r.cat||'').toLowerCase().includes('carton'));
